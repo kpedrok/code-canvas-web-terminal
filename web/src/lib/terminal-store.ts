@@ -14,6 +14,7 @@ interface TerminalState {
   terminalHistory: TerminalOutput[];
   currentCommand: string;
   connected: boolean;
+  isLoading: boolean;
   webSocket: WebSocket | null;
   userId: string;
   setCurrentCommand: (command: string) => void;
@@ -30,6 +31,7 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
   terminalHistory: [],
   currentCommand: '',
   connected: false,
+  isLoading: false,
   webSocket: null,
   userId: '',
   
@@ -57,6 +59,9 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
       get().webSocket!.close();
     }
 
+    // Set loading state
+    set({ isLoading: true });
+
     // Use a direct WebSocket URL for local development
     const ws = new WebSocket(`ws://localhost:8000/ws/${userId}`);
     set({ webSocket: ws });
@@ -67,7 +72,7 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
     });
     
     ws.onopen = () => {
-      set({ connected: true });
+      set({ connected: true, isLoading: false });
       addTerminalOutput({
         content: 'Connected to terminal server.',
         type: 'output',
@@ -76,25 +81,50 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
     
     ws.onclose = () => {
       set({ connected: false });
-      addTerminalOutput({
-        content: 'Connection closed. Refresh to reconnect.',
-        type: 'error',
-      });
+      
+      // Only show reconnection message if we're not in loading state
+      if (!get().isLoading) {
+        addTerminalOutput({
+          content: 'Connection closed. Attempting to reconnect...',
+          type: 'error',
+        });
+        
+        // Try to reconnect after a short delay
+        setTimeout(() => {
+          if (!get().connected) {
+            get().connectWebSocket();
+          }
+        }, 3000);
+      }
     };
     
     ws.onerror = (error) => {
-      set({ connected: false });
-      addTerminalOutput({
-        content: 'WebSocket error: Unable to connect to the backend server. Make sure uvicorn is running.',
-        type: 'error',
-      });
-      addTerminalOutput({
-        content: 'Run this command in your terminal: uvicorn main:app --reload',
-        type: 'error',
-      });
+      // Don't update error state immediately, give it time to connect
+      // Container creation might take a few seconds
+      
+      // If we're not already in a loading state, show an error
+      if (!get().isLoading) {
+        set({ connected: false });
+        addTerminalOutput({
+          content: 'WebSocket error: Unable to connect to the backend server. Make sure uvicorn is running.',
+          type: 'error',
+        });
+      }
+      
+      // Either way, attempt to reconnect automatically
+      setTimeout(() => {
+        if (!get().connected) {
+          get().connectWebSocket();
+        }
+      }, 3000);
     };
     
     ws.onmessage = (event) => {
+      // If we get a message, we're definitely connected
+      if (get().isLoading) {
+        set({ isLoading: false });
+      }
+      
       addTerminalOutput({
         content: event.data,
         type: 'output',

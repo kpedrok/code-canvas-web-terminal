@@ -3,11 +3,13 @@ import { useTerminalStore } from '@/lib/terminal-store'
 import { TerminalHeader } from './terminal/TerminalHeader'
 import { TerminalHistory } from './terminal/TerminalHistory'
 import { TerminalInput } from './terminal/TerminalInput'
+import { Loader2 } from 'lucide-react'
 
 export function Terminal() {
   const {
     terminalHistory,
     currentCommand,
+    isLoading,
     setCurrentCommand,
     executeCommand,
     initialize,
@@ -46,6 +48,20 @@ export function Terminal() {
       onClick={handleTerminalClick}
     >
       <TerminalHeader />
+
+      {isLoading && (
+        <div className='absolute inset-0 flex items-center justify-center bg-terminal/80 z-10'>
+          <div className='flex flex-col items-center space-y-3 p-4 rounded-lg bg-terminal-foreground/10 backdrop-blur-sm'>
+            <Loader2 className='h-8 w-8 text-primary animate-spin' />
+            <p className='text-terminal-foreground'>
+              Creating your terminal environment...
+            </p>
+            <p className='text-terminal-foreground/60 text-xs'>
+              This may take a few seconds
+            </p>
+          </div>
+        </div>
+      )}
 
       <TerminalHistory terminalHistory={terminalHistory} />
 
