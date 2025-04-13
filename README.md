@@ -47,3 +47,12 @@ Then replace `"python:3.12-slim"` with `"user_env"` in `main.py`.
 
 - Do NOT run this in production without container resource limits and sandboxing.
 - Always clean up old sessions and containers.
+
+  curl -L https://fly.io/install.sh | sh
+
+  fly auth login
+  fly volumes create terminal_data --size 10 --region ewr
+
+                 fly deploy
+
+                      fly open

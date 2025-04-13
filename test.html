@@ -44,9 +44,29 @@
   <textarea id="terminal" readonly></textarea>
   <input id="input" placeholder="Enter command..." autofocus />
   <script>
-    const ws = new WebSocket("ws://localhost:8000/ws/user123");
+    // Generate a random user ID if not present
+    const userId = localStorage.getItem('userId') || `user_${Math.random().toString(36).substring(2, 10)}`;
+    localStorage.setItem('userId', userId);
+    
+    // Use a direct WebSocket URL for local development
+    const ws = new WebSocket(`ws://localhost:8000/ws/${userId}`);
     const terminal = document.getElementById("terminal");
     const input = document.getElementById("input");
+
+    terminal.value = `Connecting to server at ws://localhost:8000/ws/${userId}...\n`;
+
+    ws.onopen = () => {
+      terminal.value += `Connected to terminal server.\n`;
+    };
+
+    ws.onclose = () => {
+      terminal.value += `\nConnection closed. Refresh to reconnect.\n`;
+    };
+
+    ws.onerror = (error) => {
+      terminal.value += `\nWebSocket error: Unable to connect to the backend server. Make sure uvicorn is running.\n`;
+      terminal.value += `Run this command in your terminal: uvicorn main:app --reload\n`;
+    };
 
     ws.onmessage = (event) => {
       terminal.value += event.data;

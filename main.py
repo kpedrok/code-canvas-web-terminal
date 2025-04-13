@@ -3,7 +3,9 @@ import docker
 import asyncio
 import subprocess
 import os
+import sys
 from fastapi.middleware.cors import CORSMiddleware
+import uuid
 
 app = FastAPI()
 
@@ -16,6 +18,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Determine if we're running locally or on fly.io
+is_production = os.environ.get("FLY_APP_NAME") is not None
+
+# Set data directory based on environment
+if is_production:
+    # Use fly.io volume mount in production
+    DATA_DIR = "/data/users"
+else:
+    # Use local directory for development
+    DATA_DIR = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "persistent_data/users"
+    )
+
+# Create data directory if it doesn't exist
+os.makedirs(DATA_DIR, exist_ok=True)
+
 docker_client = docker.from_env()
 user_sessions = {}
 
@@ -23,6 +41,11 @@ user_sessions = {}
 @app.get("/")
 def read_root():
     return {"message": "Web Terminal API is running"}
+
+
+@app.get("/health")
+def health_check():
+    return {"status": "healthy"}
 
 
 @app.websocket("/ws/{user_id}")
@@ -33,9 +56,13 @@ async def terminal_ws(websocket: WebSocket, user_id: str):
         # Send a welcome message to confirm connection
         await websocket.send_text("Connected to terminal. Starting container...\n")
 
+        # Create user directory if it doesn't exist
+        user_dir = os.path.join(DATA_DIR, user_id)
+        os.makedirs(user_dir, exist_ok=True)
+
         # Create or get user session
         if user_id not in user_sessions:
-            # Create a new Docker container for this session
+            # Create a new Docker container for this session with volume mount
             container = docker_client.containers.run(
                 "python:3.12-slim",
                 command="bash",
@@ -43,12 +70,16 @@ async def terminal_ws(websocket: WebSocket, user_id: str):
                 tty=True,
                 detach=True,
                 remove=True,  # Auto-remove when stopped
+                volumes={user_dir: {"bind": "/workspace", "mode": "rw"}},
+                working_dir="/workspace",
+                environment={"USER_ID": user_id, "TERM": "xterm-256color"},
             )
 
             # Store session info
             user_sessions[user_id] = {
                 "container": container,
                 "container_id": container.id,
+                "last_active": asyncio.get_event_loop().time(),
             }
 
             await websocket.send_text(
@@ -57,6 +88,8 @@ async def terminal_ws(websocket: WebSocket, user_id: str):
 
         session = user_sessions[user_id]
         container = session["container"]
+        # Update last active timestamp
+        session["last_active"] = asyncio.get_event_loop().time()
 
         # Function to execute commands and stream output
         async def execute_command(cmd):
@@ -71,29 +104,57 @@ async def terminal_ws(websocket: WebSocket, user_id: str):
 
         # Send initial container info and prompt
         await execute_command(
-            "echo 'Web Terminal ready. Type commands and press Enter.'"
+            "echo 'Web Terminal ready. Type commands and press Enter. Your files are stored in /workspace'"
         )
         await websocket.send_text("\n$ ")
 
         # Process commands from the client
         while True:
             cmd = await websocket.receive_text()
+            # Update last active timestamp
+            session["last_active"] = asyncio.get_event_loop().time()
+
             if cmd.strip().lower() in ["exit", "quit"]:
                 await websocket.send_text("Closing session...\n")
                 break
 
             if cmd.strip():
-                # Execute the command and stream output
-                exec_result = container.exec_run(f"/bin/bash -c '{cmd}'", stream=True)
+                # Log command for debugging
+                print(f"Executing command: {cmd}")
 
-                for chunk in exec_result.output:
-                    if chunk:
-                        await websocket.send_text(
-                            chunk.decode("utf-8", errors="ignore")
-                        )
+                try:
+                    # Execute the command without streaming for more reliable output
+                    exec_result = container.exec_run(
+                        cmd=f"/bin/bash -c '{cmd}'",
+                        demux=True,  # Split stdout and stderr
+                    )
+
+                    # Output the results
+                    exit_code = exec_result.exit_code
+                    stdout, stderr = exec_result.output
+
+                    print(f"Command exit code: {exit_code}")
+
+                    if stdout:
+                        stdout_text = stdout.decode("utf-8", errors="ignore")
+                        print(f"STDOUT: {stdout_text}")
+                        await websocket.send_text(stdout_text)
+
+                    if stderr:
+                        stderr_text = stderr.decode("utf-8", errors="ignore")
+                        print(f"STDERR: {stderr_text}")
+                        await websocket.send_text(stderr_text)
+
+                    if not stdout and not stderr:
+                        print("No output from command")
+
+                except Exception as e:
+                    error_msg = f"Error executing command: {str(e)}\n"
+                    print(error_msg)
+                    await websocket.send_text(error_msg)
 
                 # Send a new prompt
-                await websocket.send_text("\n$ ")
+                await websocket.send_text("$ ")
 
     except WebSocketDisconnect:
         # Clean up resources
@@ -120,3 +181,31 @@ async def terminal_ws(websocket: WebSocket, user_id: str):
                 del user_sessions[user_id]
             except:
                 pass
+
+
+# Start a background task to clean up inactive sessions
+@app.on_event("startup")
+async def start_cleanup_task():
+    asyncio.create_task(cleanup_inactive_sessions())
+
+
+async def cleanup_inactive_sessions():
+    while True:
+        current_time = asyncio.get_event_loop().time()
+        to_remove = []
+
+        for user_id, session in user_sessions.items():
+            # If session is inactive for more than 30 minutes
+            if current_time - session["last_active"] > 1800:  # 30 minutes
+                try:
+                    session["container"].stop()
+                    to_remove.append(user_id)
+                except Exception as e:
+                    print(f"Error stopping container: {str(e)}")
+
+        # Remove stopped sessions
+        for user_id in to_remove:
+            del user_sessions[user_id]
+
+        # Check every 5 minutes
+        await asyncio.sleep(300)
