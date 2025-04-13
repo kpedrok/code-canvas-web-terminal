@@ -1,12 +1,13 @@
 # Web Terminal Backend (FastAPI + Docker)
 
-This project runs a Linux-like terminal in the browser. Each user gets an isolated Docker container where they can execute shell commands like `pip install`, `python script.py`, etc.
+This project runs a Linux-like terminal in the browser. Each user gets an isolated Docker container per project where they can execute shell commands like `pip install`, `python script.py`, etc.
 
 ## ✅ Features
 
 - WebSocket communication between terminal UI and backend
-- One Docker container per user
+- One Docker container per user per project
 - Real-time terminal output
+- Persistent file storage per project
 
 ## 🚀 Run Locally
 
@@ -33,7 +34,7 @@ uvicorn main:app --reload
 
 ### 3. Open the demo
 
-Open `test.html` in a browser.
+Open `test.html` in a browser. Enter a project ID and click "Connect" to start a terminal session.
 
 ## 🐳 Build your custom image (optional)
 

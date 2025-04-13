@@ -5,7 +5,11 @@ import { TerminalHistory } from './terminal/TerminalHistory'
 import { TerminalInput } from './terminal/TerminalInput'
 import { Loader2 } from 'lucide-react'
 
-export function Terminal() {
+interface TerminalProps {
+  projectId?: string
+}
+
+export function Terminal({ projectId }: TerminalProps) {
   const {
     terminalHistory,
     currentCommand,
@@ -20,13 +24,13 @@ export function Terminal() {
 
   // Initialize WebSocket connection on component mount
   useEffect(() => {
-    initialize()
+    initialize(projectId)
 
     // Clean up the WebSocket connection when component unmounts
     return () => {
       disconnectWebSocket()
     }
-  }, [initialize, disconnectWebSocket])
+  }, [initialize, disconnectWebSocket, projectId])
 
   // Focus input when terminal is clicked
   const handleTerminalClick = () => {

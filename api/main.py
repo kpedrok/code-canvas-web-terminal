@@ -48,20 +48,23 @@ def health_check():
     return {"status": "healthy"}
 
 
-@app.websocket("/ws/{user_id}")
-async def terminal_ws(websocket: WebSocket, user_id: str):
+@app.websocket("/ws/{user_id}/{project_id}")
+async def terminal_ws(websocket: WebSocket, user_id: str, project_id: str):
     await websocket.accept()
 
     try:
         # Send a welcome message to confirm connection
         await websocket.send_text("Connected to terminal. Starting container...\n")
 
-        # Create user directory if it doesn't exist
-        user_dir = os.path.join(DATA_DIR, user_id)
-        os.makedirs(user_dir, exist_ok=True)
+        # Create user and project directory if it doesn't exist
+        user_project_dir = os.path.join(DATA_DIR, user_id, project_id)
+        os.makedirs(user_project_dir, exist_ok=True)
+
+        # Create a unique session key from user_id and project_id
+        session_key = f"{user_id}:{project_id}"
 
         # Create or get user session
-        if user_id not in user_sessions:
+        if session_key not in user_sessions:
             # Create a new Docker container for this session with volume mount
             container = docker_client.containers.run(
                 "python:3.12-slim",
@@ -70,13 +73,17 @@ async def terminal_ws(websocket: WebSocket, user_id: str):
                 tty=True,
                 detach=True,
                 remove=True,  # Auto-remove when stopped
-                volumes={user_dir: {"bind": "/workspace", "mode": "rw"}},
+                volumes={user_project_dir: {"bind": "/workspace", "mode": "rw"}},
                 working_dir="/workspace",
-                environment={"USER_ID": user_id, "TERM": "xterm-256color"},
+                environment={
+                    "USER_ID": user_id,
+                    "PROJECT_ID": project_id,
+                    "TERM": "xterm-256color",
+                },
             )
 
             # Store session info
-            user_sessions[user_id] = {
+            user_sessions[session_key] = {
                 "container": container,
                 "container_id": container.id,
                 "last_active": asyncio.get_event_loop().time(),
@@ -86,7 +93,7 @@ async def terminal_ws(websocket: WebSocket, user_id: str):
                 f"Container started with ID: {container.id[:12]}\n"
             )
 
-        session = user_sessions[user_id]
+        session = user_sessions[session_key]
         container = session["container"]
         # Update last active timestamp
         session["last_active"] = asyncio.get_event_loop().time()
@@ -158,11 +165,12 @@ async def terminal_ws(websocket: WebSocket, user_id: str):
 
     except WebSocketDisconnect:
         # Clean up resources
-        if user_id in user_sessions:
+        session_key = f"{user_id}:{project_id}"
+        if session_key in user_sessions:
             try:
-                session = user_sessions[user_id]
+                session = user_sessions[session_key]
                 session["container"].stop()
-                del user_sessions[user_id]
+                del user_sessions[session_key]
             except Exception as e:
                 print(f"Error cleaning up: {str(e)}")
 
@@ -174,11 +182,12 @@ async def terminal_ws(websocket: WebSocket, user_id: str):
             pass
 
         # Clean up
-        if user_id in user_sessions:
+        session_key = f"{user_id}:{project_id}"
+        if session_key in user_sessions:
             try:
-                session = user_sessions[user_id]
+                session = user_sessions[session_key]
                 session["container"].stop()
-                del user_sessions[user_id]
+                del user_sessions[session_key]
             except:
                 pass
 
@@ -194,18 +203,18 @@ async def cleanup_inactive_sessions():
         current_time = asyncio.get_event_loop().time()
         to_remove = []
 
-        for user_id, session in user_sessions.items():
+        for session_key, session in user_sessions.items():
             # If session is inactive for more than 30 minutes
             if current_time - session["last_active"] > 1800:  # 30 minutes
                 try:
                     session["container"].stop()
-                    to_remove.append(user_id)
+                    to_remove.append(session_key)
                 except Exception as e:
                     print(f"Error stopping container: {str(e)}")
 
         # Remove stopped sessions
-        for user_id in to_remove:
-            del user_sessions[user_id]
+        for session_key in to_remove:
+            del user_sessions[session_key]
 
         # Check every 5 minutes
         await asyncio.sleep(300)

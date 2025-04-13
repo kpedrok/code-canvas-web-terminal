@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { generateId } from './utils';
 import { useFileStore } from './file-store';
+import { useProjectsStore } from './projects-store';
 
 // Types
 export interface TerminalOutput {
@@ -17,13 +18,15 @@ interface TerminalState {
   isLoading: boolean;
   webSocket: WebSocket | null;
   userId: string;
+  projectId: string;
   setCurrentCommand: (command: string) => void;
+  setProjectId: (projectId: string) => void;
   addTerminalOutput: (output: Omit<TerminalOutput, 'id'>) => void;
   clearTerminal: () => void;
-  executeCommand: (command: string) => void;
+  executeCommand: (command: string, forceTerminate?: boolean) => void;
   connectWebSocket: () => void;
   disconnectWebSocket: () => void;
-  initialize: () => void;
+  initialize: (projectId?: string) => void;
 }
 
 // Create terminal store
@@ -34,8 +37,18 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
   isLoading: false,
   webSocket: null,
   userId: '',
+  projectId: 'default',
   
   setCurrentCommand: (command) => set({ currentCommand: command }),
+  
+  setProjectId: (projectId) => {
+    set({ projectId });
+    // If already connected, reconnect with the new project ID
+    if (get().connected) {
+      get().disconnectWebSocket();
+      get().connectWebSocket();
+    }
+  },
   
   addTerminalOutput: (output) => set((state) => ({ 
     terminalHistory: [...state.terminalHistory, { ...output, id: generateId() }]
@@ -43,16 +56,25 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
   
   clearTerminal: () => set({ terminalHistory: [] }),
 
-  initialize: () => {
+  initialize: (projectId) => {
     // Generate a random user ID if not present
     const userId = localStorage.getItem('userId') || `user_${Math.random().toString(36).substring(2, 10)}`;
     localStorage.setItem('userId', userId);
-    set({ userId });
+    
+    // If projectId is provided, use it; otherwise, try to get the active project ID
+    // or use the default project ID
+    let currentProjectId = projectId;
+    if (!currentProjectId) {
+      const activeProject = useProjectsStore.getState().activeProject;
+      currentProjectId = activeProject?.id || 'default';
+    }
+    
+    set({ userId, projectId: currentProjectId });
     get().connectWebSocket();
   },
   
   connectWebSocket: () => {
-    const { userId, addTerminalOutput } = get();
+    const { userId, projectId, addTerminalOutput } = get();
     
     // Close existing connection if any
     if (get().webSocket) {
@@ -62,12 +84,12 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
     // Set loading state
     set({ isLoading: true });
 
-    // Use a direct WebSocket URL for local development
-    const ws = new WebSocket(`ws://localhost:8000/ws/${userId}`);
+    // Use a direct WebSocket URL for local development with project ID
+    const ws = new WebSocket(`ws://localhost:8000/ws/${userId}/${projectId}`);
     set({ webSocket: ws });
     
     addTerminalOutput({
-      content: `Connecting to server at ws://localhost:8000/ws/${userId}...`,
+      content: `Connecting to server at ws://localhost:8000/ws/${userId}/${projectId}...`,
       type: 'output',
     });
     
@@ -140,26 +162,26 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
     }
   },
   
-  executeCommand: (command) => {
+  executeCommand: (command, forceTerminate = false) => {
     const { addTerminalOutput, webSocket, connected } = get();
     
-    // Add the command to terminal history
-    if (command) {
+    // Add the command to terminal history if it's a normal command (not a forced termination)
+    if (command && !forceTerminate) {
       addTerminalOutput({
         content: command,
         type: 'command',
       });
-      
-      // If connected to websocket, send command
-      if (connected && webSocket) {
-        webSocket.send(command);
-      } else {
-        // If not connected, show error
-        addTerminalOutput({
-          content: 'Not connected to server. Try refreshing the page.',
-          type: 'error',
-        });
-      }
+    }
+    
+    // If connected to websocket, send command
+    if (connected && webSocket) {
+      webSocket.send(command);
+    } else {
+      // If not connected, show error
+      addTerminalOutput({
+        content: 'Not connected to server. Try refreshing the page.',
+        type: 'error',
+      });
     }
   },
 }));
