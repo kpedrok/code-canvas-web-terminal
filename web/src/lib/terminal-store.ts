@@ -1,4 +1,3 @@
-
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { generateId } from './utils';
@@ -14,16 +13,25 @@ export interface TerminalOutput {
 interface TerminalState {
   terminalHistory: TerminalOutput[];
   currentCommand: string;
+  connected: boolean;
+  webSocket: WebSocket | null;
+  userId: string;
   setCurrentCommand: (command: string) => void;
   addTerminalOutput: (output: Omit<TerminalOutput, 'id'>) => void;
   clearTerminal: () => void;
-  executeCommand: (command: string, isTermination?: boolean) => void;
+  executeCommand: (command: string) => void;
+  connectWebSocket: () => void;
+  disconnectWebSocket: () => void;
+  initialize: () => void;
 }
 
 // Create terminal store
 export const useTerminalStore = create<TerminalState>((set, get) => ({
   terminalHistory: [],
   currentCommand: '',
+  connected: false,
+  webSocket: null,
+  userId: '',
   
   setCurrentCommand: (command) => set({ currentCommand: command }),
   
@@ -32,18 +40,78 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
   })),
   
   clearTerminal: () => set({ terminalHistory: [] }),
+
+  initialize: () => {
+    // Generate a random user ID if not present
+    const userId = localStorage.getItem('userId') || `user_${Math.random().toString(36).substring(2, 10)}`;
+    localStorage.setItem('userId', userId);
+    set({ userId });
+    get().connectWebSocket();
+  },
   
-  executeCommand: (command, isTermination = false) => {
-    const { addTerminalOutput } = get();
+  connectWebSocket: () => {
+    const { userId, addTerminalOutput } = get();
     
-    // If this is a termination signal, show termination message
-    if (isTermination) {
+    // Close existing connection if any
+    if (get().webSocket) {
+      get().webSocket!.close();
+    }
+
+    // Use a direct WebSocket URL for local development
+    const ws = new WebSocket(`ws://localhost:8000/ws/${userId}`);
+    set({ webSocket: ws });
+    
+    addTerminalOutput({
+      content: `Connecting to server at ws://localhost:8000/ws/${userId}...`,
+      type: 'output',
+    });
+    
+    ws.onopen = () => {
+      set({ connected: true });
       addTerminalOutput({
-        content: "Process terminated due to timeout.",
+        content: 'Connected to terminal server.',
+        type: 'output',
+      });
+    };
+    
+    ws.onclose = () => {
+      set({ connected: false });
+      addTerminalOutput({
+        content: 'Connection closed. Refresh to reconnect.',
         type: 'error',
       });
-      return;
+    };
+    
+    ws.onerror = (error) => {
+      set({ connected: false });
+      addTerminalOutput({
+        content: 'WebSocket error: Unable to connect to the backend server. Make sure uvicorn is running.',
+        type: 'error',
+      });
+      addTerminalOutput({
+        content: 'Run this command in your terminal: uvicorn main:app --reload',
+        type: 'error',
+      });
+    };
+    
+    ws.onmessage = (event) => {
+      addTerminalOutput({
+        content: event.data,
+        type: 'output',
+      });
+    };
+  },
+  
+  disconnectWebSocket: () => {
+    const { webSocket } = get();
+    if (webSocket) {
+      webSocket.close();
+      set({ webSocket: null, connected: false });
     }
+  },
+  
+  executeCommand: (command) => {
+    const { addTerminalOutput, webSocket, connected } = get();
     
     // Add the command to terminal history
     if (command) {
@@ -51,85 +119,17 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
         content: command,
         type: 'command',
       });
-    }
-    
-    // Import file store only when needed to avoid circular dependencies
-    const { files } = useFileStore.getState();
-    
-    // Simulate processing time
-    setTimeout(() => {
-      // Handle Python script execution
-      if (command.startsWith('python ')) {
-        const filename = command.split(' ')[1];
-        const file = files.find(f => f.name === filename);
-        
-        if (file) {
-          // In a real app, this would send the code to the backend
-          // For now, we'll simulate a simple Python output
-          
-          // For main.py, show the default output
-          if (filename === 'main.py') {
-            addTerminalOutput({
-              content: 'Hello, World!',
-              type: 'output',
-            });
-            addTerminalOutput({
-              content: 'Count: 0\nCount: 1\nCount: 2\nCount: 3\nCount: 4',
-              type: 'output',
-            });
-          } else {
-            addTerminalOutput({
-              content: `Executing ${filename}...\nOutput would appear here`,
-              type: 'output', 
-            });
-          }
-        } else {
-          addTerminalOutput({
-            content: `Error: File ${filename} not found`,
-            type: 'error',
-          });
-        }
-      } 
-      // Handle pip install
-      else if (command.startsWith('pip install ')) {
-        const packageName = command.split('pip install ')[1];
+      
+      // If connected to websocket, send command
+      if (connected && webSocket) {
+        webSocket.send(command);
+      } else {
+        // If not connected, show error
         addTerminalOutput({
-          content: `Installing ${packageName}...\nSuccessfully installed ${packageName}`,
-          type: 'output',
-        });
-      }
-      // Handle clear command
-      else if (command === 'clear' || command === 'cls') {
-        set({ terminalHistory: [] });
-      }
-      // Handle ls command
-      else if (command === 'ls' || command === 'dir') {
-        const { files } = useFileStore.getState();
-        const fileList = files.map(f => f.name).join('\n');
-        addTerminalOutput({
-          content: fileList || 'No files found',
-          type: 'output',
-        });
-      }
-      // Handle help command
-      else if (command === 'help') {
-        addTerminalOutput({
-          content: `Available commands:
-- python <filename> - Run a Python script
-- pip install <package> - Install a Python package
-- ls/dir - List files
-- clear/cls - Clear terminal
-- help - Show this help message`,
-          type: 'output',
-        });
-      }
-      // Unknown command
-      else if (command) {
-        addTerminalOutput({
-          content: `Command not recognized: ${command}\nType 'help' to see available commands`,
+          content: 'Not connected to server. Try refreshing the page.',
           type: 'error',
         });
       }
-    }, 300);
+    }
   },
 }));
