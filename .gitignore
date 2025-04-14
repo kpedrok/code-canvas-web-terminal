@@ -32,3 +32,4 @@ out/
 *.swp
 *.swo
 .DS_Store
+api/persistent_data/*
