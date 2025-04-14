@@ -22,7 +22,10 @@ app.add_middleware(
 is_production = os.environ.get("FLY_APP_NAME") is not None
 
 # Set data directory based on environment
-if is_production:
+if os.environ.get("DATA_DIR"):
+    # Use the environment variable if provided
+    DATA_DIR = os.environ.get("DATA_DIR")
+elif is_production:
     # Use fly.io volume mount in production
     DATA_DIR = "/data/users"
 else:
@@ -30,6 +33,8 @@ else:
     DATA_DIR = os.path.join(
         os.path.dirname(os.path.abspath(__file__)), "persistent_data/users"
     )
+
+print(f"Using data directory: {DATA_DIR}")
 
 # Create data directory if it doesn't exist
 os.makedirs(DATA_DIR, exist_ok=True)
@@ -60,12 +65,29 @@ async def terminal_ws(websocket: WebSocket, user_id: str, project_id: str):
         user_project_dir = os.path.join(DATA_DIR, user_id, project_id)
         os.makedirs(user_project_dir, exist_ok=True)
 
+        # Get absolute path for Docker volume mount
+        # This is critical for Docker Desktop on macOS
+        host_path = os.path.abspath(user_project_dir)
+        if os.environ.get("HOST_DATA_DIR"):
+            # If running in Docker, we need to map the container path to host path
+            container_path = os.path.join(DATA_DIR, user_id, project_id)
+            host_path = container_path.replace(
+                DATA_DIR, os.environ.get("HOST_DATA_DIR")
+            )
+            print(
+                f"Mounting volume: Container path {container_path} -> Host path {host_path}"
+            )
+
+        # Ensure everyone can read/write to this directory
+        os.system(f"chmod -R 777 {user_project_dir}")
+
         # Create a unique session key from user_id and project_id
         session_key = f"{user_id}:{project_id}"
 
         # Create or get user session
         if session_key not in user_sessions:
             # Create a new Docker container for this session with volume mount
+            print(f"Creating container with volume mount: {host_path}:/workspace")
             container = docker_client.containers.run(
                 "python:3.12-slim",
                 command="bash",
@@ -73,7 +95,7 @@ async def terminal_ws(websocket: WebSocket, user_id: str, project_id: str):
                 tty=True,
                 detach=True,
                 remove=True,  # Auto-remove when stopped
-                volumes={user_project_dir: {"bind": "/workspace", "mode": "rw"}},
+                volumes={host_path: {"bind": "/workspace", "mode": "rw"}},
                 working_dir="/workspace",
                 environment={
                     "USER_ID": user_id,
