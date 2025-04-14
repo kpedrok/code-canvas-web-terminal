@@ -63,15 +63,23 @@ export function ProjectDetail() {
   const handleRunFile = () => {
     const activeFile = files.find((file) => file.id === activeFileId)
     if (activeFile) {
-      executeCommand(`python ${activeFile.name}`)
+      const escapedContent = activeFile.content
+        .replace(/\\/g, '\\\\') // Escape backslashes
+        .replace(/"/g, '\\"') // Escape double quotes for shell
+
+      const runCommand = `python -c "${escapedContent}"`
+
+      // Run the command
+      useTerminalStore.getState().executeCommand(runCommand)
+
       toast({
-        title: 'Running file',
-        description: `Executing ${activeFile.name} with ${maxRuntime}s timeout...`,
+        title: 'Running code',
+        description: `Executing ${activeFile.name} content with ${maxRuntime}s timeout...`,
       })
 
       if (maxRuntime < 3) {
         setTimeout(() => {
-          executeCommand('', true)
+          useTerminalStore.getState().executeCommand('', true)
           toast({
             title: 'Execution terminated',
             description: `Maximum runtime of ${maxRuntime}s exceeded.`,
