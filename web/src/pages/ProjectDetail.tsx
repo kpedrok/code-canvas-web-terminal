@@ -50,7 +50,7 @@ export function ProjectDetail() {
         }
 
         setLoading(false)
-      }, 1200)
+      }, 300)
 
       return () => clearTimeout(timer)
     }
