@@ -24,14 +24,6 @@ export function Dashboard() {
     }
   }, [isAuthenticated, navigate])
 
-  useEffect(() => {
-    // Simulate data loading from backend
-    const timer = setTimeout(() => {
-      setLoading(false)
-    }, 300)
-
-    return () => clearTimeout(timer)
-  }, [])
 
   const handleLogout = () => {
     logout()

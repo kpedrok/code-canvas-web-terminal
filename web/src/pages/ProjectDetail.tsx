@@ -21,8 +21,7 @@ export function ProjectDetail() {
   const { projectId } = useParams<{ projectId: string }>()
   const { isAuthenticated } = useAuthStore()
   const { getProject, updateProject } = useProjectsStore()
-  const { files, activeFileId } = useFileStore()
-  const { executeCommand } = useTerminalStore()
+  const { files, activeFileId, fetchProjectFiles } = useFileStore()
   const { toast } = useToast()
   const navigate = useNavigate()
   const [maxRuntime, setMaxRuntime] = useState<number>(10)
@@ -36,7 +35,7 @@ export function ProjectDetail() {
     }
 
     if (projectId) {
-      const timer = setTimeout(() => {
+      const loadProject = async () => {
         const projectData = getProject(projectId)
         if (!projectData) {
           navigate('/dashboard')
@@ -49,12 +48,24 @@ export function ProjectDetail() {
           setMaxRuntime(projectData.maxRuntime)
         }
 
-        setLoading(false)
-      }, 300)
+        // Load project files from the backend
+        try {
+          await fetchProjectFiles(projectId);
+        } catch (error) {
+          console.error('Failed to fetch project files:', error);
+          toast({
+            title: 'Error loading files',
+            description: 'Could not load project files. Using default files instead.',
+            variant: 'destructive',
+          });
+        }
 
-      return () => clearTimeout(timer)
+        setLoading(false);
+      };
+
+      loadProject();
     }
-  }, [projectId, isAuthenticated, navigate, getProject])
+  }, [projectId, isAuthenticated, navigate, getProject, fetchProjectFiles, toast])
 
   const handleGoBack = () => {
     navigate('/dashboard')

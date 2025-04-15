@@ -4,7 +4,11 @@ import { useToast } from '@/hooks/use-toast'
 import { FileSidebarHeader } from './file-sidebar/FileSidebarHeader'
 import { FileList } from './file-sidebar/FileList'
 
-export function FileSidebar() {
+interface FileSidebarProps {
+  projectId?: string
+}
+
+export function FileSidebar({ projectId }: FileSidebarProps) {
   const {
     files,
     activeFileId,
@@ -27,6 +31,15 @@ export function FileSidebar() {
   }
 
   const handleNewFileSubmit = (fileName: string) => {
+    if (!projectId) {
+      toast({
+        title: 'Cannot create file',
+        description: 'No project is currently active.',
+        variant: 'destructive',
+      })
+      return
+    }
+    
     // Add .py extension if none provided
     const formattedFileName = fileName.includes('.')
       ? fileName
@@ -36,7 +49,7 @@ export function FileSidebar() {
       name: formattedFileName,
       language: 'python',
       content: '# New file\n',
-    })
+    }, projectId)
 
     setNewFileName('')
     setIsCreatingFile(false)

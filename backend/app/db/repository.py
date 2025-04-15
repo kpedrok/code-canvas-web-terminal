@@ -110,3 +110,14 @@ class FileRepository:
             db.commit()
             return True
         return False
+
+    @staticmethod
+    def update_file_name_and_path(db: Session, file_id: str, new_name: str, new_path: str):
+        db_file = db.query(models.File).filter(models.File.id == file_id).first()
+        if db_file:
+            db_file.name = new_name
+            db_file.path = new_path
+            db.commit()
+            db.refresh(db_file)
+            return db_file
+        return None

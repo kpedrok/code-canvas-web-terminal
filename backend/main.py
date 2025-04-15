@@ -12,6 +12,8 @@ from app.db.database import engine, get_db
 from app.db.models import Base
 from app.db.repository import UserRepository, ProjectRepository, FileRepository
 from sqlalchemy.orm import Session
+# Import route handlers
+from app.routes import files
 
 app = FastAPI()
 
@@ -55,6 +57,8 @@ async def create_tables():
     Base.metadata.create_all(bind=engine)
     print("Database tables created")
 
+# Include file routes
+app.include_router(files.router, prefix="/api")
 
 @app.get("/")
 def read_root():

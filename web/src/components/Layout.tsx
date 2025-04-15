@@ -12,7 +12,7 @@ export function Layout({ projectId }: LayoutProps = {}) {
   return (
     <div className='flex-1 overflow-hidden bg-gradient-to-br from-background via-background to-background/90'>
       <ResizablePanels
-        left={<FileSidebar />}
+        left={<FileSidebar projectId={projectId} />}
         main={<CodeEditor />}
         bottom={<Terminal projectId={projectId} />}
         defaultLayout={[65, 35]}
