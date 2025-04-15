@@ -2,6 +2,9 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { useAuthStore } from './auth-store';
 
+// API base URL - adjust if your backend is hosted elsewhere
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
 export interface Project {
   id: string;
   name: string;
@@ -21,11 +24,15 @@ export interface Project {
 interface ProjectsState {
   projects: Project[];
   activeProject: Project | null;
-  createProject: (name: string, description: string) => void;
+  loading: boolean;
+  error: string | null;
+  createProject: (name: string, description: string) => Promise<void>;
+  fetchProjects: () => Promise<void>;
   getProjects: () => Project[];
   getProject: (id: string) => Project | undefined;
+  fetchProject: (id: string) => Promise<void>;
   updateProject: (id: string, data: Partial<Project>) => void;
-  deleteProject: (id: string) => void;
+  deleteProject: (id: string) => Promise<void>;
   setActiveProject: (id: string) => void;
 }
 
@@ -34,33 +41,95 @@ export const useProjectsStore = create<ProjectsState>()(
     (set, get) => ({
       projects: [],
       activeProject: null,
+      loading: false,
+      error: null,
       
-      createProject: (name: string, description: string) => {
+      createProject: async (name: string, description: string) => {
         const user = useAuthStore.getState().user;
         if (!user) return;
         
-        const newProject: Project = {
-          id: Math.random().toString(36).substring(2, 9),
-          name,
-          description,
-          userId: user.id,
-          files: [
-            {
-              id: 'default-file',
-              name: 'main.py',
-              language: 'python',
-              content: '# Welcome to your new project\n\nprint("Hello, World!")',
-            }
-          ],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          maxRuntime: 10, // Default max runtime in seconds
-        };
+        set({ loading: true, error: null });
         
-        set((state) => ({ 
-          projects: [...state.projects, newProject],
-          activeProject: newProject
-        }));
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/projects/${user.id}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ name, description }),
+          });
+          
+          if (!response.ok) {
+            throw new Error('Failed to create project');
+          }
+          
+          const projectData = await response.json();
+          
+          // Create a new project object with the returned data
+          const newProject: Project = {
+            id: projectData.id,
+            name: projectData.name,
+            description: projectData.description,
+            userId: user.id,
+            files: [
+              {
+                id: 'default-file',
+                name: 'main.py',
+                language: 'python',
+                content: '# Welcome to your new project\n\nprint("Hello, World!")',
+              }
+            ],
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            maxRuntime: 10, // Default max runtime in seconds
+          };
+          
+          set((state) => ({ 
+            projects: [...state.projects, newProject],
+            activeProject: newProject,
+            loading: false
+          }));
+        } catch (error) {
+          console.error('Error creating project:', error);
+          set({ error: 'Failed to create project', loading: false });
+        }
+      },
+      
+      fetchProjects: async () => {
+        const user = useAuthStore.getState().user;
+        if (!user) return;
+        
+        set({ loading: true, error: null });
+        
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/projects/${user.id}`);
+          
+          if (!response.ok) {
+            throw new Error('Failed to fetch projects');
+          }
+          
+          const data = await response.json();
+          
+          // Map the API response to our Project interface
+          const fetchedProjects = data.projects.map((project: any) => ({
+            id: project.id,
+            name: project.name,
+            description: project.description || '',
+            userId: user.id,
+            files: [], // We'll load files on demand when opening a project
+            createdAt: project.createdAt || new Date().toISOString(),
+            updatedAt: project.updatedAt || new Date().toISOString(),
+            maxRuntime: 10,
+          }));
+          
+          set({ 
+            projects: fetchedProjects, 
+            loading: false 
+          });
+        } catch (error) {
+          console.error('Error fetching projects:', error);
+          set({ error: 'Failed to fetch projects', loading: false });
+        }
       },
       
       getProjects: () => {
@@ -79,6 +148,56 @@ export const useProjectsStore = create<ProjectsState>()(
         );
       },
       
+      fetchProject: async (id: string) => {
+        const user = useAuthStore.getState().user;
+        if (!user) return;
+        
+        set({ loading: true, error: null });
+        
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/projects/${user.id}/${id}`);
+          
+          if (!response.ok) {
+            throw new Error('Failed to fetch project details');
+          }
+          
+          const projectData = await response.json();
+          
+          // Update the project in our state
+          set((state) => {
+            const existingProjectIndex = state.projects.findIndex(p => p.id === id);
+            
+            const updatedProject: Project = {
+              id: projectData.id,
+              name: projectData.name,
+              description: projectData.description || '',
+              userId: user.id,
+              files: state.projects[existingProjectIndex]?.files || [],
+              createdAt: projectData.createdAt || new Date().toISOString(),
+              updatedAt: projectData.updatedAt || new Date().toISOString(),
+              maxRuntime: 10,
+            };
+            
+            const updatedProjects = [...state.projects];
+            
+            if (existingProjectIndex >= 0) {
+              updatedProjects[existingProjectIndex] = updatedProject;
+            } else {
+              updatedProjects.push(updatedProject);
+            }
+            
+            return {
+              projects: updatedProjects,
+              activeProject: updatedProject,
+              loading: false
+            };
+          });
+        } catch (error) {
+          console.error('Error fetching project details:', error);
+          set({ error: 'Failed to fetch project details', loading: false });
+        }
+      },
+      
       updateProject: (id: string, data: Partial<Project>) => {
         const user = useAuthStore.getState().user;
         if (!user) return;
@@ -93,18 +212,37 @@ export const useProjectsStore = create<ProjectsState>()(
             ? { ...state.activeProject, ...data, updatedAt: new Date().toISOString() } 
             : state.activeProject
         }));
+        
+        // For a POC, we're not implementing the update API call
+        // In a production app, you would add the API call here
       },
       
-      deleteProject: (id: string) => {
+      deleteProject: async (id: string) => {
         const user = useAuthStore.getState().user;
         if (!user) return;
         
-        set((state) => ({
-          projects: state.projects.filter(
-            project => !(project.id === id && project.userId === user.id)
-          ),
-          activeProject: state.activeProject?.id === id ? null : state.activeProject
-        }));
+        set({ loading: true, error: null });
+        
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/projects/${user.id}/${id}`, {
+            method: 'DELETE',
+          });
+          
+          if (!response.ok) {
+            throw new Error('Failed to delete project');
+          }
+          
+          set((state) => ({
+            projects: state.projects.filter(
+              project => !(project.id === id && project.userId === user.id)
+            ),
+            activeProject: state.activeProject?.id === id ? null : state.activeProject,
+            loading: false
+          }));
+        } catch (error) {
+          console.error('Error deleting project:', error);
+          set({ error: 'Failed to delete project', loading: false });
+        }
       },
       
       setActiveProject: (id: string) => {

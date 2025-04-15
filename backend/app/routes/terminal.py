@@ -1,17 +1,42 @@
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
 import asyncio
 from ..core.docker import get_session, execute_command, stop_session
+from ..db.database import get_db
+from ..db.repository import UserRepository, ProjectRepository
+from sqlalchemy.orm import Session
+import os
 
 router = APIRouter()
 
 
 @router.websocket("/ws/{user_id}/{project_id}")
-async def terminal_ws(websocket: WebSocket, user_id: str, project_id: str):
+async def terminal_ws(
+    websocket: WebSocket, user_id: str, project_id: str, db: Session = Depends(get_db)
+):
     await websocket.accept()
 
     try:
         # Send a welcome message to confirm connection
-        await websocket.send_text("Connected to terminal. Starting container...\n")
+        await websocket.send_text("Connected to terminal. Checking project access...\n")
+
+        # Validate that the user and project exist in the database
+        user = UserRepository.get_user(db, user_id)
+        if not user:
+            # Create the user if they don't exist (for POC simplicity)
+            user = UserRepository.create_user(db, user_id)
+
+        # Check if the project exists for this user
+        project = ProjectRepository.get_project(db, project_id)
+        if not project:
+            # For POC purposes, we'll create a default project if it doesn't exist
+            project = ProjectRepository.create_project(
+                db,
+                name=f"Project {project_id[:8]}",
+                user_id=user_id,
+                description="Auto-created project",
+            )
+
+        await websocket.send_text("Starting container...\n")
 
         # Get or create session
         session = get_session(user_id, project_id)

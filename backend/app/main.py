@@ -1,31 +1,15 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from .routes import health, terminal
-from .utils.cleanup import cleanup_inactive_sessions
-import asyncio
+"""
+Module initializer for the app package.
+This file now serves as an initializer for the app package,
+rather than containing a duplicate FastAPI application.
 
-app = FastAPI()
+The actual FastAPI application is defined in /backend/main.py
+"""
 
-# Add CORS middleware to allow connections from the browser
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # For development only, restrict in production
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Include routers
-app.include_router(health.router)
-app.include_router(terminal.router)
+# This file intentionally left mostly empty.
+# It serves as an initializer for the app package.
+# The main FastAPI application is defined in /backend/main.py
 
 
-@app.get("/")
-def read_root():
-    return {"message": "Web Terminal API is running"}
-
-
-# Start a background task to clean up inactive sessions
-@app.on_event("startup")
-async def start_cleanup_task():
-    asyncio.create_task(cleanup_inactive_sessions())
+def get_app_version():
+    return "1.0.0"
