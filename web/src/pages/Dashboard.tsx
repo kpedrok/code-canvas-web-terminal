@@ -11,7 +11,7 @@ import { useToast } from '@/components/ui/use-toast'
 
 export function Dashboard() {
   const { isAuthenticated, user, logout } = useAuthStore()
-  const { fetchProjects, getProjects, loading } = useProjectsStore()
+  const { fetchProjects, loading } = useProjectsStore()
   const navigate = useNavigate()
   const { toast } = useToast()
   const [newProjectDialogOpen, setNewProjectDialogOpen] = useState(false)
@@ -22,9 +22,8 @@ export function Dashboard() {
       navigate('/login')
     } else if (user) {
       // Fetch projects from backend when component mounts and user is authenticated
-      fetchProjects().then(v =>{
-        console.log(v)
-        setProjects(v)
+      fetchProjects().then(projects =>{
+        setProjects(projects)
       }).catch(error => {
         console.error('Failed to fetch projects:', error);
         toast({
@@ -34,7 +33,7 @@ export function Dashboard() {
         });
       });
     }
-  }, [isAuthenticated, user, fetchProjects, toast])
+  }, [])
 
 
   const handleLogout = () => {
