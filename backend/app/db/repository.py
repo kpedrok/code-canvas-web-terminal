@@ -1,7 +1,9 @@
-from sqlalchemy.orm import Session
 import uuid
+from typing import Optional
+
 import bcrypt
-from typing import List, Optional
+from sqlalchemy.orm import Session
+
 from . import models
 
 
@@ -9,42 +11,50 @@ class UserRepository:
     @staticmethod
     def get_user(db: Session, user_id: str):
         return db.query(models.User).filter(models.User.id == user_id).first()
-    
+
     @staticmethod
     def get_user_by_email(db: Session, email: str):
         return db.query(models.User).filter(models.User.email == email).first()
 
     @staticmethod
-    def create_user(db: Session, name: str, email: str, password: str, username: Optional[str] = None):
+    def create_user(
+        db: Session,
+        name: str,
+        email: str,
+        password: str,
+        username: Optional[str] = None,
+    ):
         # Hash the password
-        password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-        
+        password_hash = bcrypt.hashpw(
+            password.encode("utf-8"), bcrypt.gensalt()
+        ).decode("utf-8")
+
         # Create a unique ID
         user_id = str(uuid.uuid4())
-        
+
         # Create the user
         db_user = models.User(
-            id=user_id, 
-            username=username or email.split('@')[0], 
+            id=user_id,
+            username=username or email.split("@")[0],
             email=email,
             name=name,
-            password_hash=password_hash
+            password_hash=password_hash,
         )
         db.add(db_user)
         db.commit()
         db.refresh(db_user)
         return db_user
-    
+
     @staticmethod
     def authenticate_user(db: Session, email: str, password: str):
         user = UserRepository.get_user_by_email(db, email)
         if not user:
             return None
-        
+
         # Verify password
-        if bcrypt.checkpw(password.encode('utf-8'), user.password_hash.encode('utf-8')):
+        if bcrypt.checkpw(password.encode("utf-8"), user.password_hash.encode("utf-8")):
             return user
-        
+
         return None
 
 
@@ -142,7 +152,9 @@ class FileRepository:
         return False
 
     @staticmethod
-    def update_file_name_and_path(db: Session, file_id: str, new_name: str, new_path: str):
+    def update_file_name_and_path(
+        db: Session, file_id: str, new_name: str, new_path: str
+    ):
         db_file = db.query(models.File).filter(models.File.id == file_id).first()
         if db_file:
             db_file.name = new_name

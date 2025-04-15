@@ -1,21 +1,18 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends
-import docker
 import asyncio
-import subprocess
 import os
-import sys
+
+import docker
+from fastapi import Depends, FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-import uuid
+from sqlalchemy.orm import Session
 
 # Import database modules
 from app.db.database import engine, get_db
 from app.db.models import Base
-from app.db.repository import UserRepository, ProjectRepository, FileRepository
-from sqlalchemy.orm import Session
+from app.db.repository import ProjectRepository, UserRepository
+
 # Import route handlers
-from app.routes import files
-from app.routes import auth
-from app.routes import projects_auth
+from app.routes import auth, files, projects_auth
 
 app = FastAPI()
 
@@ -59,10 +56,12 @@ async def create_tables():
     Base.metadata.create_all(bind=engine)
     print("Database tables created")
 
+
 # Include route modules
 app.include_router(files.router, prefix="/api")
 app.include_router(auth.router, prefix="/api/auth")
 app.include_router(projects_auth.router, prefix="/api")
+
 
 @app.get("/")
 def read_root():
@@ -76,6 +75,7 @@ def health_check():
 
 # Legacy API endpoints for backward compatibility
 # These will be deprecated in favor of the authenticated endpoints
+
 
 @app.get("/api/projects/{user_id}")
 def get_user_projects(user_id: str, db: Session = Depends(get_db)):

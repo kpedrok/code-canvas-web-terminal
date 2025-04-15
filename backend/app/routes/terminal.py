@@ -1,23 +1,24 @@
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends, Query
 import asyncio
-from ..core.docker import get_session, execute_command, stop_session
-from ..db.database import get_db
-from ..db.repository import UserRepository, ProjectRepository
-from sqlalchemy.orm import Session
-import os
+
+from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect
 from jose import JWTError, jwt
-from ..core.auth import SECRET_KEY, ALGORITHM
+from sqlalchemy.orm import Session
+
+from ..core.auth import ALGORITHM, SECRET_KEY
+from ..core.docker import execute_command, get_session, stop_session
+from ..db.database import get_db
+from ..db.repository import ProjectRepository, UserRepository
 
 router = APIRouter()
 
 
 @router.websocket("/ws/{user_id}/{project_id}")
 async def terminal_ws(
-    websocket: WebSocket, 
-    user_id: str, 
-    project_id: str, 
+    websocket: WebSocket,
+    user_id: str,
+    project_id: str,
     token: str = Query(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     await websocket.accept()
 
@@ -28,7 +29,9 @@ async def terminal_ws(
                 payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
                 token_user_id = payload.get("sub")
                 if token_user_id != user_id:
-                    await websocket.send_text("Authentication error: Token user ID doesn't match path user ID\n")
+                    await websocket.send_text(
+                        "Authentication error: Token user ID doesn't match path user ID\n"
+                    )
                     await websocket.close()
                     return
             except JWTError:
@@ -38,7 +41,9 @@ async def terminal_ws(
         else:
             # For development, we'll still allow connections without a token
             # but display a warning. In production, you would want to enforce tokens.
-            await websocket.send_text("Warning: No authentication token provided. This will be required in production.\n")
+            await websocket.send_text(
+                "Warning: No authentication token provided. This will be required in production.\n"
+            )
 
         # Send a welcome message to confirm connection
         await websocket.send_text("Connected to terminal. Checking project access...\n")

@@ -1,6 +1,7 @@
 import asyncio
+
+from ..core.config import CLEANUP_INTERVAL, SESSION_TIMEOUT
 from ..core.docker import user_sessions
-from ..core.config import SESSION_TIMEOUT, CLEANUP_INTERVAL
 
 
 async def cleanup_inactive_sessions():

@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
 from typing import List
 
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+
 from ..db.database import get_db
-from ..db.repository import ProjectRepository, FileRepository
+from ..db.repository import FileRepository, ProjectRepository
 from ..schemas.projects import File, FileCreate
 
 router = APIRouter()
@@ -64,7 +65,7 @@ def update_file_content(file_id: str, content: dict, db: Session = Depends(get_d
     file = FileRepository.get_file(db, file_id)
     if not file:
         raise HTTPException(status_code=404, detail="File not found")
-    
+
     return FileRepository.update_file_content(db, file_id, content.get("content", ""))
 
 
@@ -74,23 +75,24 @@ def rename_file(file_id: str, name_data: dict, db: Session = Depends(get_db)):
     file = FileRepository.get_file(db, file_id)
     if not file:
         raise HTTPException(status_code=404, detail="File not found")
-    
+
     new_name = name_data.get("name", "")
     if not new_name:
         raise HTTPException(status_code=400, detail="Name cannot be empty")
-    
+
     # Update file path with new name
     path_parts = file.path.split("/")
     path_parts[-1] = new_name
     new_path = "/".join(path_parts)
-    
+
     # Check if new path already exists
     existing_file = FileRepository.get_file_by_path(db, file.project_id, new_path)
     if existing_file and existing_file.id != file_id:
         raise HTTPException(
-            status_code=400, detail="File with this name already exists in the same directory"
+            status_code=400,
+            detail="File with this name already exists in the same directory",
         )
-    
+
     # Update file name and path
     return FileRepository.update_file_name_and_path(db, file_id, new_name, new_path)
 
@@ -101,7 +103,7 @@ def delete_file(file_id: str, db: Session = Depends(get_db)):
     file = FileRepository.get_file(db, file_id)
     if not file:
         raise HTTPException(status_code=404, detail="File not found")
-    
+
     result = FileRepository.delete_file(db, file_id)
     if not result:
         raise HTTPException(status_code=500, detail="Failed to delete file")

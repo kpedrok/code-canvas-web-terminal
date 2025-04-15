@@ -8,3 +8,4 @@ alembic
 bcrypt
 python-jose[cryptography]
 pydantic[email]
+ruff

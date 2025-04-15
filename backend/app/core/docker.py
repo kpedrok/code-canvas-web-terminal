@@ -1,6 +1,8 @@
-import docker
-from ..core.config import DATA_DIR
 import os
+
+import docker
+
+from ..core.config import DATA_DIR
 
 docker_client = docker.from_env()
 user_sessions = {}
@@ -15,13 +17,9 @@ def create_container(user_id: str, project_id: str):
     host_path = user_project_dir
     if os.environ.get("HOST_DATA_DIR"):
         # If running in Docker, map the container path to host path
-        host_path = os.path.join(
-            os.environ.get("HOST_DATA_DIR"),
-            user_id,
-            project_id
-        )
+        host_path = os.path.join(os.environ.get("HOST_DATA_DIR"), user_id, project_id)
         print(f"Mapping container path {user_project_dir} to host path {host_path}")
-    
+
     # Ensure everyone can read/write to this directory
     try:
         os.system(f"chmod -R 777 {user_project_dir}")
