@@ -14,6 +14,8 @@ from app.db.repository import UserRepository, ProjectRepository, FileRepository
 from sqlalchemy.orm import Session
 # Import route handlers
 from app.routes import files
+from app.routes import auth
+from app.routes import projects_auth
 
 app = FastAPI()
 
@@ -57,8 +59,10 @@ async def create_tables():
     Base.metadata.create_all(bind=engine)
     print("Database tables created")
 
-# Include file routes
+# Include route modules
 app.include_router(files.router, prefix="/api")
+app.include_router(auth.router, prefix="/api/auth")
+app.include_router(projects_auth.router, prefix="/api")
 
 @app.get("/")
 def read_root():
@@ -70,7 +74,9 @@ def health_check():
     return {"status": "healthy"}
 
 
-# New endpoint for projects management with SQLite
+# Legacy API endpoints for backward compatibility
+# These will be deprecated in favor of the authenticated endpoints
+
 @app.get("/api/projects/{user_id}")
 def get_user_projects(user_id: str, db: Session = Depends(get_db)):
     # Ensure user exists

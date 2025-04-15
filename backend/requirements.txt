@@ -5,3 +5,6 @@ websockets
 python-multipart
 sqlalchemy
 alembic
+bcrypt
+python-jose[cryptography]
+pydantic[email]

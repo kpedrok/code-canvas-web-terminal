@@ -3,6 +3,10 @@ import { persist } from 'zustand/middleware';
 import { generateId } from './utils';
 import { useFileStore } from './file-store';
 import { useProjectsStore } from './projects-store';
+import { useAuthStore } from './auth-store';
+
+// API base URL - adjust if your backend is hosted elsewhere
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 // Types
 export interface TerminalOutput {
@@ -17,7 +21,6 @@ interface TerminalState {
   connected: boolean;
   isLoading: boolean;
   webSocket: WebSocket | null;
-  userId: string;
   projectId: string;
   setCurrentCommand: (command: string) => void;
   setProjectId: (projectId: string) => void;
@@ -36,7 +39,6 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
   connected: false,
   isLoading: false,
   webSocket: null,
-  userId: '',
   projectId: 'default',
   
   setCurrentCommand: (command) => set({ currentCommand: command }),
@@ -57,9 +59,20 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
   clearTerminal: () => set({ terminalHistory: [] }),
 
   initialize: (projectId) => {
-    // Generate a random user ID if not present
-    const userId = localStorage.getItem('userId') || `user_${Math.random().toString(36).substring(2, 10)}`;
-    localStorage.setItem('userId', userId);
+    // Get the authenticated user
+    const { user, isAuthenticated } = useAuthStore.getState();
+    
+    if (!isAuthenticated || !user) {
+      // If not authenticated, add error message to terminal
+      set({ 
+        terminalHistory: [{
+          id: generateId(),
+          content: 'Authentication required. Please log in to use the terminal.',
+          type: 'error'
+        }]
+      });
+      return;
+    }
     
     // If projectId is provided, use it; otherwise, try to get the active project ID
     // or use the default project ID
@@ -69,13 +82,23 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
       currentProjectId = activeProject?.id || 'default';
     }
     
-    set({ userId, projectId: currentProjectId });
+    set({ projectId: currentProjectId });
     get().connectWebSocket();
   },
   
   connectWebSocket: () => {
-    const { userId, projectId, addTerminalOutput } = get();
+    const { projectId, addTerminalOutput } = get();
+    const { user, getAuthHeaders, isAuthenticated } = useAuthStore.getState();
     
+    // Check if user is authenticated
+    if (!isAuthenticated || !user) {
+      addTerminalOutput({
+        content: 'Authentication required. Please log in to use the terminal.',
+        type: 'error',
+      });
+      return;
+    }
+
     // Close existing connection if any
     if (get().webSocket) {
       get().webSocket!.close();
@@ -84,12 +107,18 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
     // Set loading state
     set({ isLoading: true });
 
-    // Use a direct WebSocket URL for local development with project ID
-    const ws = new WebSocket(`ws://localhost:8000/ws/${userId}/${projectId}`);
+    // Use WebSocket URL with authenticated user ID
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsBaseUrl = API_BASE_URL.replace(/^https?:\/\//, `${wsProtocol}//`);
+    
+    // Create WebSocket connection with authentication token in query param
+    const token = useAuthStore.getState().token;
+    const ws = new WebSocket(`${wsBaseUrl}/ws/${user.id}/${projectId}?token=${token}`);
+    
     set({ webSocket: ws });
     
     addTerminalOutput({
-      content: `Connecting to server at ws://localhost:8000/ws/${userId}/${projectId}...`,
+      content: `Connecting to terminal for project ${projectId}...`,
       type: 'output',
     });
     

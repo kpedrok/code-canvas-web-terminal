@@ -11,27 +11,31 @@ import { useToast } from '@/components/ui/use-toast'
 
 export function Dashboard() {
   const { isAuthenticated, user, logout } = useAuthStore()
-  const { getProjects } = useProjectsStore()
-  const projects = getProjects()
+  const { fetchProjects, getProjects, loading } = useProjectsStore()
   const navigate = useNavigate()
   const { toast } = useToast()
   const [newProjectDialogOpen, setNewProjectDialogOpen] = useState(false)
-  const [loading, setLoading] = useState(true)
+  const [projects, setProjects] = useState([])
 
   useEffect(() => {
     if (!isAuthenticated) {
       navigate('/login')
+    } else if (user) {
+      // Fetch projects from backend when component mounts and user is authenticated
+      fetchProjects().then(v =>{
+        console.log(v)
+        setProjects(v)
+      }).catch(error => {
+        console.error('Failed to fetch projects:', error);
+        toast({
+          title: 'Error loading projects',
+          description: 'Could not load your projects. Please try again.',
+          variant: 'destructive',
+        });
+      });
     }
-  }, [isAuthenticated, navigate])
+  }, [isAuthenticated, user, fetchProjects, toast])
 
-  useEffect(() => {
-    // Simulate data loading from backend
-    const timer = setTimeout(() => {
-      setLoading(false)
-    }, 200)
-
-    return () => clearTimeout(timer)
-  }, [])
 
   const handleLogout = () => {
     logout()

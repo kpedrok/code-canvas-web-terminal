@@ -27,7 +27,7 @@ interface ProjectsState {
   loading: boolean;
   error: string | null;
   createProject: (name: string, description: string) => Promise<void>;
-  fetchProjects: () => Promise<void>;
+  fetchProjects: () => Promise<Project[]>;
   getProjects: () => Project[];
   getProject: (id: string) => Project | undefined;
   fetchProject: (id: string) => Promise<void>;
@@ -45,16 +45,18 @@ export const useProjectsStore = create<ProjectsState>()(
       error: null,
       
       createProject: async (name: string, description: string) => {
-        const user = useAuthStore.getState().user;
+        const { user, getAuthHeaders } = useAuthStore.getState();
         if (!user) return;
         
         set({ loading: true, error: null });
         
         try {
-          const response = await fetch(`${API_BASE_URL}/api/projects/${user.id}`, {
+          // Use the new authenticated endpoint
+          const response = await fetch(`${API_BASE_URL}/api/projects`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
+              ...getAuthHeaders()
             },
             body: JSON.stringify({ name, description }),
           });
@@ -79,8 +81,8 @@ export const useProjectsStore = create<ProjectsState>()(
                 content: '# Welcome to your new project\n\nprint("Hello, World!")',
               }
             ],
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
+            createdAt: projectData.created_at || new Date().toISOString(),
+            updatedAt: projectData.updated_at || new Date().toISOString(),
             maxRuntime: 10, // Default max runtime in seconds
           };
           
@@ -96,29 +98,32 @@ export const useProjectsStore = create<ProjectsState>()(
       },
       
       fetchProjects: async () => {
-        const user = useAuthStore.getState().user;
+        const { user, getAuthHeaders } = useAuthStore.getState();
         if (!user) return;
         
         set({ loading: true, error: null });
         
         try {
-          const response = await fetch(`${API_BASE_URL}/api/projects/${user.id}`);
+          // Use the new authenticated endpoint
+          const response = await fetch(`${API_BASE_URL}/api/projects`, {
+            headers: getAuthHeaders()
+          });
           
           if (!response.ok) {
             throw new Error('Failed to fetch projects');
           }
           
-          const data = await response.json();
+          const projects = await response.json();
           
           // Map the API response to our Project interface
-          const fetchedProjects = data.projects.map((project: any) => ({
+          const fetchedProjects = projects.map((project: any) => ({
             id: project.id,
             name: project.name,
             description: project.description || '',
             userId: user.id,
             files: [], // We'll load files on demand when opening a project
-            createdAt: project.createdAt || new Date().toISOString(),
-            updatedAt: project.updatedAt || new Date().toISOString(),
+            createdAt: project.created_at || new Date().toISOString(),
+            updatedAt: project.updated_at || new Date().toISOString(),
             maxRuntime: 10,
           }));
           
@@ -126,6 +131,7 @@ export const useProjectsStore = create<ProjectsState>()(
             projects: fetchedProjects, 
             loading: false 
           });
+          return fetchedProjects
         } catch (error) {
           console.error('Error fetching projects:', error);
           set({ error: 'Failed to fetch projects', loading: false });
@@ -149,13 +155,16 @@ export const useProjectsStore = create<ProjectsState>()(
       },
       
       fetchProject: async (id: string) => {
-        const user = useAuthStore.getState().user;
+        const { user, getAuthHeaders } = useAuthStore.getState();
         if (!user) return;
         
         set({ loading: true, error: null });
         
         try {
-          const response = await fetch(`${API_BASE_URL}/api/projects/${user.id}/${id}`);
+          // Use the new authenticated endpoint
+          const response = await fetch(`${API_BASE_URL}/api/projects/${id}`, {
+            headers: getAuthHeaders()
+          });
           
           if (!response.ok) {
             throw new Error('Failed to fetch project details');
@@ -173,8 +182,8 @@ export const useProjectsStore = create<ProjectsState>()(
               description: projectData.description || '',
               userId: user.id,
               files: state.projects[existingProjectIndex]?.files || [],
-              createdAt: projectData.createdAt || new Date().toISOString(),
-              updatedAt: projectData.updatedAt || new Date().toISOString(),
+              createdAt: projectData.created_at || new Date().toISOString(),
+              updatedAt: projectData.updated_at || new Date().toISOString(),
               maxRuntime: 10,
             };
             
@@ -218,14 +227,16 @@ export const useProjectsStore = create<ProjectsState>()(
       },
       
       deleteProject: async (id: string) => {
-        const user = useAuthStore.getState().user;
+        const { user, getAuthHeaders } = useAuthStore.getState();
         if (!user) return;
         
         set({ loading: true, error: null });
         
         try {
-          const response = await fetch(`${API_BASE_URL}/api/projects/${user.id}/${id}`, {
+          // Use the new authenticated endpoint
+          const response = await fetch(`${API_BASE_URL}/api/projects/${id}`, {
             method: 'DELETE',
+            headers: getAuthHeaders()
           });
           
           if (!response.ok) {
@@ -233,9 +244,7 @@ export const useProjectsStore = create<ProjectsState>()(
           }
           
           set((state) => ({
-            projects: state.projects.filter(
-              project => !(project.id === id && project.userId === user.id)
-            ),
+            projects: state.projects.filter(project => project.id !== id),
             activeProject: state.activeProject?.id === id ? null : state.activeProject,
             loading: false
           }));

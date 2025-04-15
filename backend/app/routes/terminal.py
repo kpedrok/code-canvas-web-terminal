@@ -1,29 +1,54 @@
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends, Query
 import asyncio
 from ..core.docker import get_session, execute_command, stop_session
 from ..db.database import get_db
 from ..db.repository import UserRepository, ProjectRepository
 from sqlalchemy.orm import Session
 import os
+from jose import JWTError, jwt
+from ..core.auth import SECRET_KEY, ALGORITHM
 
 router = APIRouter()
 
 
 @router.websocket("/ws/{user_id}/{project_id}")
 async def terminal_ws(
-    websocket: WebSocket, user_id: str, project_id: str, db: Session = Depends(get_db)
+    websocket: WebSocket, 
+    user_id: str, 
+    project_id: str, 
+    token: str = Query(None),
+    db: Session = Depends(get_db)
 ):
     await websocket.accept()
 
     try:
+        # Verify the authentication token if provided
+        if token:
+            try:
+                payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+                token_user_id = payload.get("sub")
+                if token_user_id != user_id:
+                    await websocket.send_text("Authentication error: Token user ID doesn't match path user ID\n")
+                    await websocket.close()
+                    return
+            except JWTError:
+                await websocket.send_text("Authentication error: Invalid token\n")
+                await websocket.close()
+                return
+        else:
+            # For development, we'll still allow connections without a token
+            # but display a warning. In production, you would want to enforce tokens.
+            await websocket.send_text("Warning: No authentication token provided. This will be required in production.\n")
+
         # Send a welcome message to confirm connection
         await websocket.send_text("Connected to terminal. Checking project access...\n")
 
         # Validate that the user and project exist in the database
         user = UserRepository.get_user(db, user_id)
         if not user:
-            # Create the user if they don't exist (for POC simplicity)
-            user = UserRepository.create_user(db, user_id)
+            await websocket.send_text("Error: User not found\n")
+            await websocket.close()
+            return
 
         # Check if the project exists for this user
         project = ProjectRepository.get_project(db, project_id)
@@ -35,6 +60,12 @@ async def terminal_ws(
                 user_id=user_id,
                 description="Auto-created project",
             )
+            await websocket.send_text(f"Created new project: {project.name}\n")
+        elif project.user_id != user_id:
+            # Check project ownership
+            await websocket.send_text("Error: You don't have access to this project\n")
+            await websocket.close()
+            return
 
         await websocket.send_text("Starting container...\n")
 
