@@ -12,7 +12,7 @@ from app.db.models import Base
 from app.db.repository import ProjectRepository, UserRepository
 
 # Import route handlers
-from app.routes import auth, files, projects_auth
+from app.routes import auth, files, projects_auth, terminal, health
 
 app = FastAPI()
 
@@ -61,84 +61,13 @@ async def create_tables():
 app.include_router(files.router, prefix="/api")
 app.include_router(auth.router, prefix="/api/auth")
 app.include_router(projects_auth.router, prefix="/api")
+app.include_router(terminal.router, prefix="/api")
+app.include_router(health.router)
 
 
 @app.get("/")
 def read_root():
     return {"message": "Web Terminal API is running"}
-
-
-@app.get("/health")
-def health_check():
-    return {"status": "healthy"}
-
-
-# Legacy API endpoints for backward compatibility
-# These will be deprecated in favor of the authenticated endpoints
-
-
-@app.get("/api/projects/{user_id}")
-def get_user_projects(user_id: str, db: Session = Depends(get_db)):
-    # Ensure user exists
-    user = UserRepository.get_user(db, user_id)
-    if not user:
-        user = UserRepository.create_user(db, user_id)
-
-    # Get projects
-    projects = ProjectRepository.get_user_projects(db, user_id)
-    return {
-        "projects": [
-            {"id": p.id, "name": p.name, "description": p.description} for p in projects
-        ]
-    }
-
-
-@app.post("/api/projects/{user_id}")
-def create_project(user_id: str, project_data: dict, db: Session = Depends(get_db)):
-    # Ensure user exists
-    user = UserRepository.get_user(db, user_id)
-    if not user:
-        user = UserRepository.create_user(db, user_id)
-
-    # Create project
-    project = ProjectRepository.create_project(
-        db,
-        name=project_data.get("name", "New Project"),
-        user_id=user_id,
-        description=project_data.get("description", ""),
-    )
-
-    # Create project directory if it doesn't exist
-    user_project_dir = os.path.join(DATA_DIR, user_id, project.id)
-    os.makedirs(user_project_dir, exist_ok=True)
-
-    return {"id": project.id, "name": project.name, "description": project.description}
-
-
-# Delete project endpoint
-@app.delete("/api/projects/{user_id}/{project_id}")
-def delete_project(user_id: str, project_id: str, db: Session = Depends(get_db)):
-    # Delete from database
-    success = ProjectRepository.delete_project(db, project_id)
-
-    # For POC we'll keep the files on disk as a backup
-    # But in production you might want to delete them as well
-
-    return {"success": success}
-
-
-# Get project details
-@app.get("/api/projects/{user_id}/{project_id}")
-def get_project(user_id: str, project_id: str, db: Session = Depends(get_db)):
-    project = ProjectRepository.get_project(db, project_id)
-    if not project:
-        return {"error": "Project not found"}, 404
-    return {
-        "id": project.id,
-        "name": project.name,
-        "description": project.description,
-        "user_id": project.user_id,
-    }
 
 
 @app.websocket("/ws/{user_id}/{project_id}")

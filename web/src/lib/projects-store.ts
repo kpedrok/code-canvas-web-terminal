@@ -51,7 +51,6 @@ export const useProjectsStore = create<ProjectsState>()(
         set({ loading: true, error: null })
 
         try {
-          // Use the new authenticated endpoint
           const response = await fetch(`${API_BASE_URL}/api/projects`, {
             method: 'POST',
             headers: {
@@ -67,7 +66,6 @@ export const useProjectsStore = create<ProjectsState>()(
 
           const projectData = await response.json()
 
-          // Create a new project object with the returned data
           const newProject: Project = {
             id: projectData.id,
             name: projectData.name,
@@ -83,7 +81,7 @@ export const useProjectsStore = create<ProjectsState>()(
             ],
             createdAt: projectData.created_at || new Date().toISOString(),
             updatedAt: projectData.updated_at || new Date().toISOString(),
-            maxRuntime: 10, // Default max runtime in seconds
+            maxRuntime: 10, 
           }
 
           set(state => ({
@@ -170,7 +168,6 @@ export const useProjectsStore = create<ProjectsState>()(
 
           const projectData = await response.json()
 
-          // Update the project in our state
           set(state => {
             const existingProjectIndex = state.projects.findIndex(p => p.id === id)
 
@@ -221,8 +218,7 @@ export const useProjectsStore = create<ProjectsState>()(
               : state.activeProject,
         }))
 
-        // For a POC, we're not implementing the update API call
-        // In a production app, you would add the API call here
+       
       },
 
       deleteProject: async (id: string) => {
@@ -232,7 +228,6 @@ export const useProjectsStore = create<ProjectsState>()(
         set({ loading: true, error: null })
 
         try {
-          // Use the new authenticated endpoint
           const response = await fetch(`${API_BASE_URL}/api/projects/${id}`, {
             method: 'DELETE',
             headers: getAuthHeaders(),
