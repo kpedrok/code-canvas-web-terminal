@@ -96,7 +96,6 @@ The application uses SQLite with SQLAlchemy ORM. The database schema includes:
 
 ## Environment Variables
 
-- `FLY_APP_NAME`: Set in production to use fly.io volume mounts
 - `DATA_DIR`: Override the default data directory path
 - `DB_URL`: Database connection URL (defaults to SQLite)
 
@@ -108,11 +107,6 @@ The application uses SQLite with SQLAlchemy ORM. The database schema includes:
 
 ## Development
 
-### Running Tests
-
-```bash
-pytest
-```
 
 ### Database Management
 
@@ -122,4 +116,3 @@ Database migrations run automatically on startup, but you can also run them manu
 python -m app.utils.migration
 ```
 
-Last updated: April 15, 2025
