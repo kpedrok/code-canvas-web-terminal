@@ -19,19 +19,30 @@ The following security limitations exist:
 - One Docker container per user per project
 - Real-time terminal output streaming
 - Persistent file storage per project
-- Full-featured React frontend
+- Full-featured React frontend with code editor
+- SQLite database for project management
 - Docker-based development environment
 
 ## 🏗️ Project Structure
 
 ```
-web-terminal/
+web-terminal-3/
 ├── backend/             # FastAPI backend that creates and manages containers
 │   ├── main.py          # Main FastAPI application
+│   ├── app/             # Core application logic
+│   │   ├── core/        # Configuration and Docker management
+│   │   ├── db/          # Database models and repository
+│   │   ├── routes/      # API endpoints
+│   │   ├── schemas/     # Pydantic schemas
+│   │   └── utils/       # Helper utilities
+│   ├── web_terminal.db  # SQLite database
 │   ├── Dockerfile       # Backend container definition
 │   └── requirements.txt # Python dependencies
-├── web/                 # React frontend (full featured)
+├── web/                 # React frontend
 │   ├── src/             # React source code
+│   │   ├── components/  # UI components including Terminal
+│   │   ├── lib/         # Store management and utilities
+│   │   └── pages/       # Application pages
 │   ├── package.json     # Node.js dependencies
 │   └── Dockerfile       # Frontend container definition
 ├── persistent_data/     # Persistent storage for user files
@@ -84,7 +95,13 @@ A basic HTML/JavaScript terminal interface with minimal dependencies. To use thi
 
 ### 2. Full-Featured React Frontend (web/)
 
-A full-featured React application with modern UI components and better user experience. This is enabled by default in the docker-compose.yml file.
+A full-featured React application with modern UI components including:
+- Terminal emulator with command history
+- File browser for project files
+- Monaco-based code editor
+- Project management dashboard
+
+This is enabled by default in the docker-compose.yml file.
 
 ## 🛠️ Development Workflow
 
@@ -129,7 +146,7 @@ cd backend
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-uvicorn main:app --reload
+uvicorn app.main:app --reload
 ```
 
 ### 2. Frontend Setup
@@ -143,9 +160,17 @@ For the React frontend:
 
 ```bash
 cd web
-pnpm install
-pnpm run dev
+pnpm install  # or npm install
+pnpm run dev  # or npm run dev
 ```
+
+## 🗄️ Database Management
+
+The project uses SQLite for persistence. The database file is located at `backend/web_terminal.db`.
+
+- Database migrations run automatically on startup
+- You can back up the database by copying the `web_terminal.db` file
+- To reset the database, delete the file and restart the application
 
 ## 🐳 Building a Custom Terminal Environment
 
@@ -156,7 +181,7 @@ cd backend
 docker build -t custom_terminal_env -f Dockerfile.terminal .
 ```
 
-Then modify `main.py` to use your custom image instead of "python:3.12-slim".
+Then modify `app/core/docker.py` to use your custom image instead of the default.
 
 ## ⚠️ Security Notes
 
@@ -178,7 +203,8 @@ If you see errors about mounts being denied:
 
 - Ensure the `HOST_DATA_DIR` environment variable is set correctly
 - Verify that Docker has permission to access the directories being mounted
-- On macOS, add the project directory to Docker Desktop's File Sharing preferences
+- On macOS/Windows, add the project directory to Docker Desktop's File Sharing preferences
+- On Windows with WSL, ensure you're running from the WSL filesystem
 
 ### Connection Issues
 
@@ -188,6 +214,18 @@ If the terminal fails to connect:
 - Verify the WebSocket connection in your browser's dev tools
 - Ensure your browser can access the backend on port 8000
 
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the project
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
 ## 📄 License
 
 This project is open-source and intended for educational purposes only. The maintainers take no responsibility for any security issues arising from its use in production environments.
+
+Last updated: April 15, 2025

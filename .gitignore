@@ -32,5 +32,6 @@ out/
 *.swp
 *.swo
 .DS_Store
-api/persistent_data/*
-backend/sqlite.db
+*.db
+persistent_data/*
+backend/web_terminal.db
