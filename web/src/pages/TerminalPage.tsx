@@ -8,11 +8,7 @@ import { useProjectsStore } from '@/lib/projects-store'
 import { useEffect, useState } from 'react'
 
 export function TerminalPage() {
-  const {
-    connected,
-    connectWebSocket,
-    setProjectId: setTerminalProjectId,
-  } = useTerminalStore()
+  const { connected, connectWebSocket, setProjectId: setTerminalProjectId } = useTerminalStore()
   const { projectId: projectIdParam } = useParams<{ projectId?: string }>()
   const { activeProject, getProject } = useProjectsStore()
   const [projectId, setProjectId] = useState<string>('default')
@@ -40,13 +36,7 @@ export function TerminalPage() {
       setProjectId(activeProject.id)
       setTerminalProjectId(activeProject.id)
     }
-  }, [
-    projectIdParam,
-    activeProject,
-    getProject,
-    setTerminalProjectId,
-    navigate,
-  ])
+  }, [projectIdParam, activeProject, getProject, setTerminalProjectId, navigate])
 
   const handleReconnect = () => {
     // Ensure terminal reconnects with the current project ID
@@ -57,44 +47,37 @@ export function TerminalPage() {
   const goBackPath = projectIdParam
     ? `/project/${projectIdParam}`
     : activeProject
-    ? `/project/${activeProject.id}`
-    : '/dashboard'
+      ? `/project/${activeProject.id}`
+      : '/dashboard'
 
   return (
-    <div className='h-screen flex flex-col'>
-      <div className='bg-muted/10 border-b border-border p-4 flex items-center justify-between'>
+    <div className='flex h-screen flex-col'>
+      <div className='flex items-center justify-between border-b border-border bg-muted/10 p-4'>
         <div className='flex items-center'>
           <Link to={goBackPath}>
             <Button variant='outline' size='sm' className='mr-4'>
-              <ArrowLeft className='h-4 w-4 mr-2' />
+              <ArrowLeft className='mr-2 h-4 w-4' />
               Back to Project
             </Button>
           </Link>
           <div className='flex items-center'>
-            <TerminalIcon className='h-5 w-5 text-primary mr-2' />
+            <TerminalIcon className='mr-2 h-5 w-5 text-primary' />
             <h1 className='text-xl font-semibold'>Terminal</h1>
             {projectId !== 'default' && (
-              <span className='ml-3 text-sm text-muted-foreground'>
-                Project: {projectId}
-              </span>
+              <span className='ml-3 text-sm text-muted-foreground'>Project: {projectId}</span>
             )}
           </div>
         </div>
 
         {!connected && (
-          <Button
-            variant='outline'
-            size='sm'
-            className='ml-auto'
-            onClick={handleReconnect}
-          >
-            <RefreshCw className='h-4 w-4 mr-2' />
+          <Button variant='outline' size='sm' className='ml-auto' onClick={handleReconnect}>
+            <RefreshCw className='mr-2 h-4 w-4' />
             Reconnect
           </Button>
         )}
       </div>
 
-      <div className='flex-1 flex flex-col'>
+      <div className='flex flex-1 flex-col'>
         <Terminal projectId={projectId} />
       </div>
     </div>

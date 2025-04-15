@@ -22,19 +22,20 @@ export function Dashboard() {
       navigate('/login')
     } else if (user) {
       // Fetch projects from backend when component mounts and user is authenticated
-      fetchProjects().then(projects =>{
-        setProjects(projects)
-      }).catch(error => {
-        console.error('Failed to fetch projects:', error);
-        toast({
-          title: 'Error loading projects',
-          description: 'Could not load your projects. Please try again.',
-          variant: 'destructive',
-        });
-      });
+      fetchProjects()
+        .then(projects => {
+          setProjects(projects)
+        })
+        .catch(error => {
+          console.error('Failed to fetch projects:', error)
+          toast({
+            title: 'Error loading projects',
+            description: 'Could not load your projects. Please try again.',
+            variant: 'destructive',
+          })
+        })
     }
   }, [])
-
 
   const handleLogout = () => {
     logout()
@@ -51,24 +52,19 @@ export function Dashboard() {
 
   return (
     <div className='min-h-screen bg-gradient-to-b from-background to-background/80'>
-      <div className='container mx-auto py-12 px-4 max-w-6xl'>
-        <div className='flex flex-col md:flex-row md:items-center justify-between mb-12'>
+      <div className='container mx-auto max-w-6xl px-4 py-12'>
+        <div className='mb-12 flex flex-col justify-between md:flex-row md:items-center'>
           <div className='mb-6 md:mb-0'>
-            <div className='flex items-center gap-3 mb-2'>
+            <div className='mb-2 flex items-center gap-3'>
               <Code className='h-8 w-8 text-primary' />
-              <h1 className='text-4xl font-bold text-gradient'>My Projects</h1>
+              <h1 className='text-gradient text-4xl font-bold'>My Projects</h1>
             </div>
-            <p className='text-muted-foreground text-lg'>
-              Manage and access your coding projects
-            </p>
+            <p className='text-lg text-muted-foreground'>Manage and access your coding projects</p>
           </div>
           <div className='flex items-center gap-4'>
-            <NewProjectDialog
-              open={newProjectDialogOpen}
-              onOpenChange={setNewProjectDialogOpen}
-            />
+            <NewProjectDialog open={newProjectDialogOpen} onOpenChange={setNewProjectDialogOpen} />
             <Button variant='outline' onClick={handleLogout}>
-              <LogOut className='h-4 w-4 mr-2 group-hover:text-primary transition-colors' />
+              <LogOut className='mr-2 h-4 w-4 transition-colors group-hover:text-primary' />
               <span>Logout</span>
             </Button>
           </div>
@@ -81,25 +77,19 @@ export function Dashboard() {
             ))}
           </div>
         ) : projects.length === 0 ? (
-          <div className='text-center py-16 border border-dashed rounded-xl border-border glass flex flex-col items-center justify-center'>
-            <h3 className='text-2xl font-medium mb-3 text-gradient'>
-              No projects yet
-            </h3>
-            <p className='text-muted-foreground mb-6 max-w-md'>
+          <div className='glass flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-16 text-center'>
+            <h3 className='text-gradient mb-3 text-2xl font-medium'>No projects yet</h3>
+            <p className='mb-6 max-w-md text-muted-foreground'>
               Create your first project to get started with CodeCanvas
             </p>
-            <Button
-              className='hover-scale btn-pulse'
-              size='lg'
-              onClick={() => setNewProjectDialogOpen(true)}
-            >
-              <Plus className='h-5 w-5 mr-2' />
+            <Button className='hover-scale btn-pulse' size='lg' onClick={() => setNewProjectDialogOpen(true)}>
+              <Plus className='mr-2 h-5 w-5' />
               Create Project
             </Button>
           </div>
         ) : (
           <div className='grid gap-8 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3'>
-            {projects.map((project) => (
+            {projects.map(project => (
               <ProjectCard key={project.id} project={project} />
             ))}
           </div>

@@ -48,21 +48,17 @@ export function Terminal({ projectId }: TerminalProps) {
   return (
     <div
       ref={terminalRef}
-      className='w-full h-full flex flex-col bg-terminal text-terminal-foreground font-mono text-sm overflow-hidden'
+      className='flex h-full w-full flex-col overflow-hidden bg-terminal font-mono text-sm text-terminal-foreground'
       onClick={handleTerminalClick}
     >
       <TerminalHeader />
 
       {isLoading && (
-        <div className='absolute inset-0 flex items-center justify-center bg-terminal/80 z-10'>
-          <div className='flex flex-col items-center space-y-3 p-4 rounded-lg bg-terminal-foreground/10 backdrop-blur-sm'>
-            <Loader2 className='h-8 w-8 text-primary animate-spin' />
-            <p className='text-terminal-foreground'>
-              Creating your terminal environment...
-            </p>
-            <p className='text-terminal-foreground/60 text-xs'>
-              This may take a few seconds
-            </p>
+        <div className='absolute inset-0 z-10 flex items-center justify-center bg-terminal/80'>
+          <div className='flex flex-col items-center space-y-3 rounded-lg bg-terminal-foreground/10 p-4 backdrop-blur-sm'>
+            <Loader2 className='h-8 w-8 animate-spin text-primary' />
+            <p className='text-terminal-foreground'>Creating your terminal environment...</p>
+            <p className='text-xs text-terminal-foreground/60'>This may take a few seconds</p>
           </div>
         </div>
       )}

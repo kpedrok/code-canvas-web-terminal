@@ -9,15 +9,7 @@ interface FileSidebarProps {
 }
 
 export function FileSidebar({ projectId }: FileSidebarProps) {
-  const {
-    files,
-    activeFileId,
-    setActiveFile,
-    addFile,
-    deleteFile,
-    renameFile,
-    saveFile,
-  } = useFileStore()
+  const { files, activeFileId, setActiveFile, addFile, deleteFile, renameFile, saveFile } = useFileStore()
   const [newFileName, setNewFileName] = useState('')
   const [isCreatingFile, setIsCreatingFile] = useState(false)
   const { toast } = useToast()
@@ -39,17 +31,18 @@ export function FileSidebar({ projectId }: FileSidebarProps) {
       })
       return
     }
-    
-    // Add .py extension if none provided
-    const formattedFileName = fileName.includes('.')
-      ? fileName
-      : `${fileName}.py`
 
-    addFile({
-      name: formattedFileName,
-      language: 'python',
-      content: '# New file\n',
-    }, projectId)
+    // Add .py extension if none provided
+    const formattedFileName = fileName.includes('.') ? fileName : `${fileName}.py`
+
+    addFile(
+      {
+        name: formattedFileName,
+        language: 'python',
+        content: '# New file\n',
+      },
+      projectId
+    )
 
     setNewFileName('')
     setIsCreatingFile(false)
@@ -95,7 +88,7 @@ export function FileSidebar({ projectId }: FileSidebarProps) {
   }
 
   return (
-    <div className='h-full w-full flex flex-col bg-sidebar text-sidebar-foreground border-r border-border'>
+    <div className='flex h-full w-full flex-col border-r border-border bg-sidebar text-sidebar-foreground'>
       <FileSidebarHeader onCreateFile={handleCreateFile} />
 
       <div className='p-2'>

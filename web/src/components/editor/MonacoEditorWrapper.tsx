@@ -1,22 +1,21 @@
-
-import { Editor } from '@monaco-editor/react';
-import { useRef } from 'react';
+import { Editor } from '@monaco-editor/react'
+import { useRef } from 'react'
 
 interface MonacoEditorWrapperProps {
-  content: string;
-  language: string;
-  onChange: (value: string | undefined) => void;
+  content: string
+  language: string
+  onChange: (value: string | undefined) => void
 }
 
 export function MonacoEditorWrapper({ content, language, onChange }: MonacoEditorWrapperProps) {
-  const editorRef = useRef<any>(null);
-  
+  const editorRef = useRef<any>(null)
+
   // Handle editor mounting
   const handleEditorDidMount = (editor: any) => {
-    editorRef.current = editor;
+    editorRef.current = editor
     // Focus the editor
-    editor.focus();
-  };
+    editor.focus()
+  }
 
   // Define editor options
   const editorOptions = {
@@ -36,21 +35,21 @@ export function MonacoEditorWrapper({ content, language, onChange }: MonacoEdito
     cursorBlinking: 'smooth' as const,
     cursorSmoothCaretAnimation: 'on' as const,
     mouseWheelZoom: true,
-  };
+  }
 
   return (
-    <div className="flex-1 animate-fade-in">
+    <div className='flex-1 animate-fade-in'>
       <Editor
-        height="100%"
+        height='100%'
         defaultLanguage={language}
         defaultValue={content}
         value={content}
         onChange={onChange}
         onMount={handleEditorDidMount}
-        theme="vs-dark"
+        theme='vs-dark'
         options={editorOptions}
-        className="w-full h-full"
+        className='h-full w-full'
       />
     </div>
-  );
+  )
 }

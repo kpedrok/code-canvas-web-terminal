@@ -10,11 +10,7 @@ import { ArrowLeft, Play, Clock, Terminal } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { Slider } from '@/components/ui/slider'
 import { ProjectDetailSkeleton } from '@/components/projects/ProjectDetailSkeleton'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Project } from '@/lib/projects-store'
 
 export function ProjectDetail() {
@@ -50,20 +46,20 @@ export function ProjectDetail() {
 
         // Load project files from the backend
         try {
-          await fetchProjectFiles(projectId);
+          await fetchProjectFiles(projectId)
         } catch (error) {
-          console.error('Failed to fetch project files:', error);
+          console.error('Failed to fetch project files:', error)
           toast({
             title: 'Error loading files',
             description: 'Could not load project files. Using default files instead.',
             variant: 'destructive',
-          });
+          })
         }
 
-        setLoading(false);
-      };
+        setLoading(false)
+      }
 
-      loadProject();
+      loadProject()
     }
   }, [projectId, isAuthenticated, navigate, getProject, fetchProjectFiles, toast])
 
@@ -72,7 +68,7 @@ export function ProjectDetail() {
   }
 
   const handleRunFile = () => {
-    const activeFile = files.find((file) => file.id === activeFileId)
+    const activeFile = files.find(file => file.id === activeFileId)
     if (activeFile) {
       const escapedContent = activeFile.content
         .replace(/\\/g, '\\\\') // Escape backslashes
@@ -128,27 +124,16 @@ export function ProjectDetail() {
   }
 
   return (
-    <div className='h-screen flex flex-col'>
-      <div className='bg-muted/10 border-b border-border p-4 flex items-center'>
-        <Button
-          variant='ghost'
-          size='icon'
-          onClick={handleGoBack}
-          className='mr-4'
-        >
+    <div className='flex h-screen flex-col'>
+      <div className='flex items-center border-b border-border bg-muted/10 p-4'>
+        <Button variant='ghost' size='icon' onClick={handleGoBack} className='mr-4'>
           <ArrowLeft className='h-5 w-5' />
         </Button>
-        <h1 className='text-xl font-bold'>
-          {project ? project.name : 'Project'}
-        </h1>
+        <h1 className='text-xl font-bold'>{project ? project.name : 'Project'}</h1>
         <div className='ml-auto flex items-center gap-3'>
           <Popover>
             <PopoverTrigger asChild>
-              <Button
-                variant='outline'
-                size='sm'
-                className='flex items-center gap-1'
-              >
+              <Button variant='outline' size='sm' className='flex items-center gap-1'>
                 <Clock className='h-4 w-4' />
                 {maxRuntime}s
               </Button>
@@ -157,8 +142,7 @@ export function ProjectDetail() {
               <div className='space-y-4'>
                 <h4 className='font-medium'>Maximum Runtime</h4>
                 <p className='text-sm text-muted-foreground'>
-                  Set the maximum time a file can execute before being
-                  terminated.
+                  Set the maximum time a file can execute before being terminated.
                 </p>
                 <div className='flex items-center gap-2'>
                   <span className='text-sm'>1s</span>
@@ -172,28 +156,17 @@ export function ProjectDetail() {
                   />
                   <span className='text-sm'>30s</span>
                 </div>
-                <div className='text-center text-sm text-muted-foreground'>
-                  Current setting: {maxRuntime} seconds
-                </div>
+                <div className='text-center text-sm text-muted-foreground'>Current setting: {maxRuntime} seconds</div>
               </div>
             </PopoverContent>
           </Popover>
 
-          <Button
-            onClick={handleOpenTerminal}
-            size='sm'
-            variant='outline'
-            className='flex items-center gap-2'
-          >
+          <Button onClick={handleOpenTerminal} size='sm' variant='outline' className='flex items-center gap-2'>
             <Terminal className='h-4 w-4' />
             Open Terminal
           </Button>
 
-          <Button
-            onClick={handleRunFile}
-            size='sm'
-            className='flex items-center gap-2'
-          >
+          <Button onClick={handleRunFile} size='sm' className='flex items-center gap-2'>
             <Play className='h-4 w-4' />
             Run File
           </Button>

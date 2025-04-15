@@ -1,13 +1,12 @@
-
-import { Navigate, Outlet } from "react-router-dom";
-import { useAuthStore } from "@/lib/auth-store";
+import { Navigate, Outlet } from 'react-router-dom'
+import { useAuthStore } from '@/lib/auth-store'
 
 interface ProtectedRouteProps {
-  redirectTo?: string;
+  redirectTo?: string
 }
 
-export function ProtectedRoute({ redirectTo = "/login" }: ProtectedRouteProps) {
-  const { isAuthenticated } = useAuthStore();
+export function ProtectedRoute({ redirectTo = '/login' }: ProtectedRouteProps) {
+  const { isAuthenticated } = useAuthStore()
 
-  return isAuthenticated ? <Outlet /> : <Navigate to={redirectTo} />;
+  return isAuthenticated ? <Outlet /> : <Navigate to={redirectTo} />
 }

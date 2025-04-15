@@ -1,25 +1,25 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 
 // Base API URL
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-const API_URL = `${API_BASE_URL}/api`;
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const API_URL = `${API_BASE_URL}/api`
 
 export interface User {
-  id: string;
-  email: string;
-  name: string;
-  username?: string;
+  id: string
+  email: string
+  name: string
+  username?: string
 }
 
 interface AuthState {
-  user: User | null;
-  token: string | null;
-  isAuthenticated: boolean;
-  register: (email: string, password: string, name: string) => Promise<void>;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
-  getAuthHeaders: () => Record<string, string>;
+  user: User | null
+  token: string | null
+  isAuthenticated: boolean
+  register: (email: string, password: string, name: string) => Promise<void>
+  login: (email: string, password: string) => Promise<void>
+  logout: () => void
+  getAuthHeaders: () => Record<string, string>
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -28,7 +28,7 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       token: null,
       isAuthenticated: false,
-      
+
       register: async (email: string, password: string, name: string) => {
         try {
           const response = await fetch(`${API_URL}/auth/register`, {
@@ -41,81 +41,83 @@ export const useAuthStore = create<AuthState>()(
               password,
               name,
             }),
-          });
+          })
 
           if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.detail || 'Registration failed');
+            const errorData = await response.json()
+            throw new Error(errorData.detail || 'Registration failed')
           }
 
-          const userData = await response.json();
-          
+          const userData = await response.json()
+
           // After registration, log in to get the token
-          await get().login(email, password);
-          
+          await get().login(email, password)
         } catch (error: any) {
-          throw new Error(error.message || 'Failed to register');
+          throw new Error(error.message || 'Failed to register')
         }
       },
-      
+
       login: async (email: string, password: string) => {
         try {
-          const response = await fetch(`${API_URL}/auth/login?email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          });
+          const response = await fetch(
+            `${API_URL}/auth/login?email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+            }
+          )
 
           if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.detail || 'Authentication failed');
+            const errorData = await response.json()
+            throw new Error(errorData.detail || 'Authentication failed')
           }
 
-          const data = await response.json();
-          
+          const data = await response.json()
+
           // Get user data with the token
           const userResponse = await fetch(`${API_URL}/auth/users/me`, {
             headers: {
-              'Authorization': `Bearer ${data.access_token}`
-            }
-          });
-          
+              Authorization: `Bearer ${data.access_token}`,
+            },
+          })
+
           if (!userResponse.ok) {
-            throw new Error('Failed to get user data');
+            throw new Error('Failed to get user data')
           }
-          
-          const userData = await userResponse.json();
-          
-          set({ 
+
+          const userData = await userResponse.json()
+
+          set({
             user: userData,
             token: data.access_token,
-            isAuthenticated: true 
-          });
+            isAuthenticated: true,
+          })
         } catch (error: any) {
-          throw new Error(error.message || 'Failed to login');
+          throw new Error(error.message || 'Failed to login')
         }
       },
-      
+
       logout: () => {
         // Simply clear the auth state
-        set({ 
+        set({
           user: null,
           token: null,
-          isAuthenticated: false 
-        });
+          isAuthenticated: false,
+        })
       },
-      
+
       getAuthHeaders: () => {
-        const token = get().token;
-        if (!token) return {};
+        const token = get().token
+        if (!token) return {}
         return {
-          'Authorization': `Bearer ${token}`
-        };
-      }
+          Authorization: `Bearer ${token}`,
+        }
+      },
     }),
     {
       name: 'auth-store',
     }
   )
-);
+)
