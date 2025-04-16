@@ -7,6 +7,17 @@ This project provides a browser-based terminal environment where each user gets 
 https://github.com/user-attachments/assets/ce2547ef-e909-44d9-b661-5d719eb41747
 
 
+## Screenshots
+- Landing Page:
+<img width="1566" alt="image" src="https://github.com/user-attachments/assets/75ea9b0e-8de2-4bba-9fba-c31eda2e790a" />
+
+- Projects:
+<img width="1309" alt="image" src="https://github.com/user-attachments/assets/06351b5c-99d0-48d8-ba56-482d0dd121bd" />
+
+- IDE:
+<img width="1782" alt="image" src="https://github.com/user-attachments/assets/7d467709-fb0c-4a6b-a552-a1e0d6d2b286" />
+
+
 **This is a demonstration project intended for learning purposes only and is NOT production-ready.**
 
 The following security limitations exist:
