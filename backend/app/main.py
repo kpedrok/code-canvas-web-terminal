@@ -130,6 +130,7 @@ def create_app() -> FastAPI:
                         "TERM": "xterm-256color",
                     },
                 )
+                container.exec_run("pip install numpy pandas scipy")
 
                 # Store session info
                 user_sessions[session_key] = {

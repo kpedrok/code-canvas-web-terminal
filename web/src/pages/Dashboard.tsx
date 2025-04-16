@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { ProjectCard } from '@/components/projects/ProjectCard'
 import { ProjectCardSkeleton } from '@/components/projects/ProjectCardSkeleton'
 import { NewProjectDialog } from '@/components/projects/NewProjectDialog'
@@ -11,31 +11,47 @@ import { useToast } from '@/components/ui/use-toast'
 
 export function Dashboard() {
   const { isAuthenticated, user, logout } = useAuthStore()
-  const { fetchProjects, loading } = useProjectsStore()
+  const { fetchProjects, loading, projects: storeProjects } = useProjectsStore()
   const navigate = useNavigate()
+  const location = useLocation()
   const { toast } = useToast()
   const [newProjectDialogOpen, setNewProjectDialogOpen] = useState(false)
   const [projects, setProjects] = useState([])
 
+  // Function to load projects
+  const loadProjects = async () => {
+    if (!user) return;
+    
+    try {
+      const fetchedProjects = await fetchProjects();
+      setProjects(fetchedProjects);
+    } catch (error) {
+      console.error('Failed to fetch projects:', error);
+      toast({
+        title: 'Error loading projects',
+        description: 'Could not load your projects. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   useEffect(() => {
     if (!isAuthenticated) {
-      navigate('/login')
-    } else if (user) {
-      // Fetch projects from backend when component mounts and user is authenticated
-      fetchProjects()
-        .then(projects => {
-          setProjects(projects)
-        })
-        .catch(error => {
-          console.error('Failed to fetch projects:', error)
-          toast({
-            title: 'Error loading projects',
-            description: 'Could not load your projects. Please try again.',
-            variant: 'destructive',
-          })
-        })
+      navigate('/login');
+      return;
     }
-  }, [])
+    
+    // Load projects when the component mounts or when location changes
+    // (which happens when returning from project creation)
+    loadProjects();
+  }, [isAuthenticated, location.key]);
+
+  // Also listen for changes in the projects store
+  useEffect(() => {
+    if (storeProjects && storeProjects.length > 0) {
+      setProjects(storeProjects);
+    }
+  }, [storeProjects]);
 
   const handleLogout = () => {
     logout()

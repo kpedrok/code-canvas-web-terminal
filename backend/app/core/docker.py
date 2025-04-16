@@ -41,6 +41,8 @@ def create_container(user_id: str, project_id: str):
             "TERM": "xterm-256color",
         },
     )
+    container.exec_run("pip install numpy pandas scipy")
+
 
     return container
 
