@@ -4,18 +4,14 @@ This project provides a browser-based terminal environment where each user gets 
 
 ## 🎬 Demo Preview
 
-A demo video is included in this repository. You can watch it to see the Web Terminal in action:
+Watch the [[demo video here](https://github.com/kpedrok/code-canvas-web-terminal/blob/main/demo-preview.mov)]
 
-```bash
-# For macOS
-open demo-preview.mov
+<video width="100%" controls>
+  <source src="demo-preview.mov" type="video/quicktime">
+  Your browser does not support the video tag.
+  <a href="demo-preview.mov">Download demo video</a>.
+</video>
 
-# For Windows
-start demo-preview.mov
-
-# For Linux with a video player like VLC
-vlc demo-preview.mov
-```
 
 ## ⚠️ IMPORTANT: DEMO USE ONLY
 
