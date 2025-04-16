@@ -2,6 +2,21 @@
 
 This project provides a browser-based terminal environment where each user gets an isolated Docker container per project. Users can execute shell commands like `pip install`, `python script.py`, etc., with persistent storage.
 
+## 🎬 Demo Preview
+
+A demo video is included in this repository. You can watch it to see the Web Terminal in action:
+
+```bash
+# For macOS
+open demo-preview.mov
+
+# For Windows
+start demo-preview.mov
+
+# For Linux with a video player like VLC
+vlc demo-preview.mov
+```
+
 ## ⚠️ IMPORTANT: DEMO USE ONLY
 
 **This is a demonstration project intended for learning purposes only and is NOT production-ready.**
@@ -214,18 +229,20 @@ If the terminal fails to connect:
 - Verify the WebSocket connection in your browser's dev tools
 - Ensure your browser can access the backend on port 8000
 
-## 🤝 Contributing
+## 🔮 Future Improvements
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+The following improvements are planned for future releases:
 
-1. Fork the project
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+1. **Enhanced Security**
+   - Implement JWT token refresh mechanism
+   - Set up container resource limits
+   - Add env.example variables
 
-## 📄 License
+3. **Backend Optimizations**
+   - Migrate from SQLite to PostgreSQL for better scalability
+   - Deploy to cloud
 
-This project is open-source and intended for educational purposes only. The maintainers take no responsibility for any security issues arising from its use in production environments.
+4. **Developer Experience**
+   - Improve test coverage
+   - Set up CI/CD pipeline
 
-Last updated: April 15, 2025

@@ -4,6 +4,7 @@ This file imports the FastAPI application from app/main.py and runs it with uvic
 """
 
 import uvicorn
+from app.main import app  # Import the app object from app.main
 
 # Run the application directly when this file is executed
 if __name__ == "__main__":
