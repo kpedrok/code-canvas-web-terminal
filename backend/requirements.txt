@@ -9,5 +9,5 @@ bcrypt
 python-jose[cryptography]
 pydantic[email]
 ruff
-python-jose
-pydantic
+social-auth-core[openidconnect]
+

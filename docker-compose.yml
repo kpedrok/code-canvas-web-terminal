@@ -9,7 +9,7 @@ services:
       - ./backend:/app
       - ./persistent_data:/data
       - /var/run/docker.sock:/var/run/docker.sock
-    command: uvicorn main:app --host 0.0.0.0 --reload
+    command: bash /app/start.sh
     environment:
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONUNBUFFERED=1
