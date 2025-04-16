@@ -7,17 +7,15 @@ import asyncio
 import os
 
 import docker
-from fastapi import Depends, FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import Session
 
 # Import database modules
-from .db.database import engine, get_db
+from .db.database import engine
 from .db.models import Base
-from .db.repository import ProjectRepository, UserRepository
 
 # Import route handlers
-from .routes import auth, files, projects, terminal, health
+from .routes import auth, files, health, projects, terminal
 
 # Application version
 APP_VERSION = "1.0.0"
@@ -51,7 +49,8 @@ def create_app() -> FastAPI:
     else:
         # Use local directory for development
         DATA_DIR = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "persistent_data/users"
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "persistent_data/users",
         )
 
     print(f"Using data directory: {DATA_DIR}")
@@ -155,9 +154,13 @@ def create_app() -> FastAPI:
                 for chunk in exec_result.output:
                     stdout, stderr = chunk
                     if stdout:
-                        await websocket.send_text(stdout.decode("utf-8", errors="ignore"))
+                        await websocket.send_text(
+                            stdout.decode("utf-8", errors="ignore")
+                        )
                     if stderr:
-                        await websocket.send_text(stderr.decode("utf-8", errors="ignore"))
+                        await websocket.send_text(
+                            stderr.decode("utf-8", errors="ignore")
+                        )
 
             # Send initial container info and prompt
             await execute_command(
@@ -266,7 +269,7 @@ def create_app() -> FastAPI:
 
             # Check every 5 minutes
             await asyncio.sleep(300)
-            
+
     return app
 
 

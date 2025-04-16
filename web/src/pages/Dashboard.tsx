@@ -20,38 +20,38 @@ export function Dashboard() {
 
   // Function to load projects
   const loadProjects = async () => {
-    if (!user) return;
-    
+    if (!user) return
+
     try {
-      const fetchedProjects = await fetchProjects();
-      setProjects(fetchedProjects);
+      const fetchedProjects = await fetchProjects()
+      setProjects(fetchedProjects)
     } catch (error) {
-      console.error('Failed to fetch projects:', error);
+      console.error('Failed to fetch projects:', error)
       toast({
         title: 'Error loading projects',
         description: 'Could not load your projects. Please try again.',
         variant: 'destructive',
-      });
+      })
     }
-  };
+  }
 
   useEffect(() => {
     if (!isAuthenticated) {
-      navigate('/login');
-      return;
+      navigate('/login')
+      return
     }
-    
+
     // Load projects when the component mounts or when location changes
     // (which happens when returning from project creation)
-    loadProjects();
-  }, [isAuthenticated, location.key]);
+    loadProjects()
+  }, [isAuthenticated, location.key])
 
   // Also listen for changes in the projects store
   useEffect(() => {
     if (storeProjects && storeProjects.length > 0) {
-      setProjects(storeProjects);
+      setProjects(storeProjects)
     }
-  }, [storeProjects]);
+  }, [storeProjects])
 
   const handleLogout = () => {
     logout()

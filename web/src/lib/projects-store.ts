@@ -81,7 +81,7 @@ export const useProjectsStore = create<ProjectsState>()(
             ],
             createdAt: projectData.created_at || new Date().toISOString(),
             updatedAt: projectData.updated_at || new Date().toISOString(),
-            maxRuntime: 10, 
+            maxRuntime: 10,
           }
 
           set(state => ({
@@ -217,8 +217,6 @@ export const useProjectsStore = create<ProjectsState>()(
               ? { ...state.activeProject, ...data, updatedAt: new Date().toISOString() }
               : state.activeProject,
         }))
-
-       
       },
 
       deleteProject: async (id: string) => {

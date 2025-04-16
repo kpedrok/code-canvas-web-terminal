@@ -43,7 +43,6 @@ def create_container(user_id: str, project_id: str):
     )
     container.exec_run("pip install numpy pandas scipy")
 
-
     return container
 
 
