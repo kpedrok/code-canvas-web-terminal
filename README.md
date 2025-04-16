@@ -4,25 +4,15 @@ This project provides a browser-based terminal environment where each user gets 
 
 ## 🎬 Demo Preview
 
-Watch the [[demo video here](https://github.com/kpedrok/code-canvas-web-terminal/blob/main/demo-preview.mov)]
+https://github.com/user-attachments/assets/ce2547ef-e909-44d9-b661-5d719eb41747
 
-<video width="100%" controls>
-  <source src="demo-preview.mov" type="video/quicktime">
-  Your browser does not support the video tag.
-  <a href="demo-preview.mov">Download demo video</a>.
-</video>
-
-
-## ⚠️ IMPORTANT: DEMO USE ONLY
 
 **This is a demonstration project intended for learning purposes only and is NOT production-ready.**
 
 The following security limitations exist:
 
-- Frontend authentication uses localStorage (insecure for production)
 - CORS settings are wide open (configured for development only)
 - Docker containers run without proper resource limits
-- No proper user authentication or authorization system
 
 ## 🌟 Features
 
